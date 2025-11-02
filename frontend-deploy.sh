@@ -1,30 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== React Frontend Deployment Script ==="
+echo "=== Vite Frontend Deployment ==="
 
-# 1. Clean install
-echo "[1/4] Installing dependencies..."
+# 1) Clean install (repeatable builds)
+echo "[1/4] Installing deps..."
 npm ci
 
-# 2. Clean old build and rebuild
-echo "[2/4] Building production build..."
-rm -rf build
+# 2) Build production (outputs to dist/)
+echo "[2/4] Building Vite app..."
+rm -rf dist
 npm run build
 
-# 3. Create deploy folder (optional if you want to zip only the build)
-echo "[3/4] Preparing deploy folder..."
+# 3) Prepare deploy folder (optional staging before zip)
+echo "[3/4] Staging files..."
 rm -rf deploy && mkdir deploy
-cp -r build deploy/
-[ -f ".env.production" ] && cp .env.production deploy/
+cp -r dist deploy/
+# If you keep an .htaccess for SPA routing, include it:
+# (see snippet below; place it at project root)
+[ -f ".htaccess" ] && cp .htaccess deploy/dist/
 
-# 4. Zip build
-echo "[4/4] Zipping build folder..."
-rm -f frontend-build.zip
-(cd deploy && zip -r ../frontend-build.zip .)
+# 4) Zip for upload
+echo "[4/4] Zipping dist -> frontend-dist.zip"
+rm -f frontend-dist.zip
+( cd deploy && zip -r ../frontend-dist.zip dist )
 
-echo ""
-echo "✅ Done! 'frontend-build.zip' is ready."
-echo "Upload the CONTENTS of 'deploy/build/' (or unzip 'frontend-build.zip')"
-echo "into '/public_html' on your cPanel hosting."
-echo ""
+echo
+echo "✅ Done! Upload the CONTENTS of 'dist/' (or unzip 'frontend-dist.zip')"
+echo "into '/public_html' on cPanel."
+echo
