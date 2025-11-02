@@ -7,6 +7,7 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 import { AuditApiService } from '@/services/audit-api';
 import { QueueApiService } from '@/services/queue-api';
 import { ExportApiService } from '@/services/export-api';
+import { calculateSuccessRate } from '@/lib/utils';
 import { 
   Activity, 
   Database, 
@@ -93,7 +94,7 @@ export default function OverviewPage() {
           {
             metric: 'Success Rate',
             value: auditStats?.byStatus ? 
-              Math.round((auditStats.byStatus.success / (auditStats.byStatus.success + auditStats.byStatus.error)) * 100) : 0,
+              calculateSuccessRate(auditStats.byStatus.success, auditStats.byStatus.error) : 0,
             category: 'audit',
             timestamp: new Date().toISOString(),
           },
@@ -326,7 +327,7 @@ export default function OverviewPage() {
         <MetricsCard
           title="Success Rate"
           value={auditStats?.byStatus ? 
-            `${Math.round((auditStats.byStatus.success / (auditStats.byStatus.success + auditStats.byStatus.error)) * 100)}%` : 
+            `${calculateSuccessRate(auditStats.byStatus.success, auditStats.byStatus.error)}%` : 
             'N/A'
           }
           change={0.3}

@@ -4,6 +4,7 @@ import { AuthGuard } from './components/auth/auth-guard';
 import { RequireRole } from './components/auth/require-role';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { usePageTitle } from './hooks/use-page-title';
 
 const OverviewPage = lazy(() => import('./pages/overview'));
 const DashboardPage = lazy(() => import('./pages/dashboard'));
@@ -43,10 +44,17 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to handle page title updates for all routes
+function PageTitleUpdater() {
+  usePageTitle();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <PageTitleUpdater />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />

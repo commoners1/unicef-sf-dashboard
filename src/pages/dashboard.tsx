@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MetricsCard } from '@/components/dashboard/metrics-card';
 import { AuditApiService } from '@/services/audit-api';
 import { QueueApiService } from '@/services/queue-api';
+import { calculateSuccessRate } from '@/lib/utils';
 import { 
   Activity, 
   Users, 
@@ -59,7 +60,7 @@ export default function DashboardPage() {
   const calculatedMetrics = {
     totalApiCalls: auditStats?.total || 0,
     successRate: auditStats?.byStatus ? 
-      Math.round((auditStats.byStatus.success / (auditStats.byStatus.success + auditStats.byStatus.error)) * 100) : 0,
+      calculateSuccessRate(auditStats.byStatus.success, auditStats.byStatus.error) : 0,
     averageResponseTime: performanceMetrics?.performance?.avgProcessingTime || 0,
     activeUsers: 0, // This would need a separate API
     queueDepth: queueHealth?.queues ? 
