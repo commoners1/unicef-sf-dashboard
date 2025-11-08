@@ -1,5 +1,7 @@
 # SF Dashboard Security Implementation
 
+Last updated: 2025-11-08
+
 ## Overview
 The SF Dashboard now includes comprehensive authentication and security measures to protect the admin interface and ensure proper access control.
 
@@ -85,6 +87,47 @@ The application includes comprehensive security headers:
 - [ ] IP whitelisting for admin access
 - [ ] Regular security audits
 - [ ] Penetration testing
+
+## 🧠 Threat Model & Residual Risk
+
+### Primary Assets
+- Admin credentials and session tokens
+- Exported data files (potentially containing PII)
+- System configuration and API keys
+
+### Threat Actors
+- External attackers attempting credential stuffing or API abuse
+- Malicious insiders with elevated privileges
+- Compromised third-party integrations (e.g., browser extensions)
+
+### Attack Surfaces
+- Login endpoint (brute force, phishing)
+- Export functionality (data exfiltration)
+- Environment configuration (tampering with base URLs)
+- Local storage (token theft on shared devices)
+
+### Residual Risks
+- Tokens stored in `localStorage` remain vulnerable if browser compromised
+- No MFA: stolen credentials grant full access
+- Limited rate limiting visibility on frontend
+- Export files rely on user handling hygiene once downloaded
+
+### Mitigations in Progress
+- 2FA, password policies, and account lockouts (see roadmap below)
+- Enhanced telemetry on export/download events
+- User education for secure file handling
+
+## 🗺️ Roadmap & Ownership
+
+| Item | Target | Owner | Status |
+| --- | --- | --- | --- |
+| Two-factor authentication | Q1 2026 | Security Engineering | Planned |
+| Password policy enforcement | Q4 2025 | Identity Team | Designing |
+| Account lockout & alerts | Q4 2025 | Backend Team | In progress |
+| Comprehensive audit logging | Q1 2026 | Platform Team | Planned |
+| IP allow-listing | Q2 2026 | Network Security | Backlog |
+| Annual security audit | Annually | Compliance | Scheduled |
+| Penetration testing | Semi-annual | Third-party Vendor | Scheduled |
 
 ## 🚀 Usage
 

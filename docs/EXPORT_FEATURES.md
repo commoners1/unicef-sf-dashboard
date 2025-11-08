@@ -1,5 +1,7 @@
 # SF Dashboard Export Features
 
+Last updated: 2025-11-08
+
 ## Overview
 The SF Dashboard provides comprehensive export functionality across all major features, allowing authorized users to extract insights and data for analysis, reporting, and compliance purposes.
 
