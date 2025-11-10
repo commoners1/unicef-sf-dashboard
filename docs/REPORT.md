@@ -99,21 +99,30 @@ Comprehensive documentation created including:
 graph TB
     subgraph "UNICEF Website Server"
         A[UNICEF CMS] --> B[Payment Processing]
-        B --> C[API Call to Middleware]
+        B -->|Request| C[API Call to Middleware]
+        C -->|Response| B
+        B --> A
     end
     
     subgraph "Biznet Server - Middleware Service"
-        C --> D[REST API Layer]
+        C -->|Request| D[REST API Layer]
         D --> E[Authentication & Authorization]
         E --> F[Rate Limiting]
         F --> G[Queue System - BullMQ]
         G --> H[Worker Processes]
         H --> I[Salesforce Service]
-        I --> J[Azure API Management]
-        J --> K[Salesforce API]
+        I -->|Request| J[Azure API Management]
+        J -->|Request| K[Salesforce API]
+        K -->|Response| J
+        J -->|Response| I
+        I -->|Response| H
+        H -->|Update Status| G
+        G -->|Store Result| M[PostgreSQL Database]
+        D -->|Query Result| M
+        D -->|Response| C
         
         G --> L[Redis Cache]
-        D --> M[PostgreSQL Database]
+        D --> M
         M --> N[Audit Logs]
         M --> O[Job Tracking]
         M --> P[Error Logs]
@@ -140,7 +149,7 @@ graph TB
     style G fill:#fff3e0
 ```
 
-### Request Flow Diagram
+### Request-Response Flow Diagram
 
 ```mermaid
 sequenceDiagram
@@ -152,19 +161,33 @@ sequenceDiagram
     participant DB as Database
     participant Dash as Dashboard
     
-    UC->>MW: API Request (with API Key)
-    MW->>MW: Validate API Key
-    MW->>MW: Check Rate Limits
-    MW->>DB: Log Request (Audit)
-    MW->>Q: Add Job to Queue
-    MW-->>UC: Job Queued Response
+    Note over UC,SF: Request Flow
+    UC->>MW: 1. API Request (with API Key)
+    MW->>MW: 2. Validate API Key
+    MW->>MW: 3. Check Rate Limits
+    MW->>DB: 4. Log Request (Audit)
+    MW->>Q: 5. Add Job to Queue
+    MW->>DB: 6. Store Job (JobAudit)
+    MW-->>UC: 7. Immediate Response (Job ID/Status)
     
-    Q->>W: Process Job
-    W->>DB: Update Job Status
-    W->>SF: Call Salesforce API
-    SF-->>W: Response
-    W->>DB: Update Job Status & Log
-    W->>Dash: Update Metrics
+    Note over Q,SF: Processing Flow
+    Q->>W: 8. Process Job
+    W->>DB: 9. Update Job Status (processing)
+    W->>SF: 10. Call Salesforce API
+    SF-->>W: 11. Salesforce Response
+    
+    Note over W,UC: Response Flow
+    W->>DB: 12. Update Job Status (completed)
+    W->>DB: 13. Store Response Data
+    W->>DB: 14. Update Audit Log (response)
+    W->>Dash: 15. Update Metrics
+    W->>Q: 16. Mark Job Complete
+    
+    Note over UC,MW: Result Retrieval
+    UC->>MW: 17. Poll/Query Job Status (optional)
+    MW->>DB: 18. Query Job Result
+    DB-->>MW: 19. Return Job Result
+    MW-->>UC: 20. Return Response Data
     
     Note over Dash: Real-time Monitoring
     Dash->>DB: Query Metrics
