@@ -480,63 +480,48 @@ erDiagram
 ### Technical Challenges
 
 1. **Network Connectivity & IP Blocking**
-   - **Challenge**: UNICEF server IP was blocked by Microsoft/Azure, preventing direct connection to Salesforce API
-   - **Solution**: Deployed middleware on Biznet Server with different IP range, bypassing the block
-   - **Impact**: Required complete architecture redesign and server migration
 
-2. **PCI DSS Compliance**
-   - **Challenge**: Strict PCI DSS compliance requirements on UNICEF server limited network configurations and troubleshooting capabilities
-   - **Solution**: Separated Salesforce integration to dedicated middleware service, reducing PCI DSS scope on main server
-   - **Impact**: Improved compliance posture while maintaining functionality
+   The primary challenge emerged when the UNICEF server's IP address was blocked by Microsoft/Azure, completely preventing any direct connection attempts to the Salesforce API endpoint at `sesapim.azure-api.net`. This blocking occurred despite attempts to use secondary IP addresses, which resulted in OPENSSL SYS ERROR messages indicating SSL/TLS handshake failures. The root cause was identified as IP-based blocking from Microsoft's side, making it impossible to establish connections from the UNICEF server infrastructure. To resolve this, we deployed the middleware service on a new Biznet Server with a different IP range, effectively bypassing the IP block while maintaining all functionality. This solution required a complete architecture redesign and server migration, but it successfully restored connectivity to Salesforce while also providing the added benefit of offloading processing from the UNICEF server.
+
+2. **PCI DSS Compliance Constraints**
+
+   The strict PCI DSS compliance requirements on the UNICEF Website Server created significant limitations on network configurations and troubleshooting capabilities. These constraints made it difficult to diagnose and resolve connection issues, as many standard troubleshooting methods were restricted or required extensive compliance reviews. By separating the Salesforce integration into a dedicated middleware service hosted on Biznet Server, we effectively reduced the PCI DSS scope on the main UNICEF server while maintaining all required functionality. This architectural change not only resolved the immediate connectivity issues but also improved the overall compliance posture by isolating payment-related processing in a separate, more controlled environment.
 
 3. **High Volume Transaction Handling**
-   - **Challenge**: Need to handle 450k+ jobs/day with reliable processing and minimal latency
-   - **Solution**: Implemented BullMQ queue system with Redis, worker processes, and batch processing
-   - **Impact**: Achieved scalable, reliable high-volume processing
+
+   The system needed to handle over 450,000 jobs per day with reliable processing and minimal latency, which posed significant scalability challenges. The previous monolithic architecture on the UNICEF server was not designed to handle such high volumes efficiently. To address this, we implemented a BullMQ queue system with Redis as the backing store, allowing for asynchronous job processing with multiple worker processes. The queue system enabled batch processing capabilities, job prioritization, and horizontal scaling of workers. This solution achieved scalable and reliable high-volume processing while maintaining low latency and high throughput, ensuring that transaction backlogs do not accumulate even during peak usage periods.
 
 4. **SSL/TLS Certificate Issues**
-   - **Challenge**: OPENSSL SYS ERROR indicated SSL/TLS handshake failures
-   - **Solution**: Proper certificate management in middleware service, with configurable SSL validation
-   - **Impact**: Resolved connection issues and improved security
+
+   The OPENSSL SYS ERROR messages indicated underlying SSL/TLS handshake failures that were preventing secure connections to the Salesforce API. These errors were likely caused by certificate validation issues, network routing problems, or compatibility issues between the UNICEF server's SSL configuration and the Azure API Management endpoint. By implementing proper certificate management in the middleware service with configurable SSL validation, we were able to resolve the connection issues while maintaining security standards. The middleware service now handles SSL/TLS negotiations properly, with support for custom certificate configurations and proper validation, ensuring secure connections to Salesforce while avoiding the previous handshake failures.
 
 5. **Multi-Environment Management**
-   - **Challenge**: Managing multiple environments (development, staging, production, production2) with different configurations
-   - **Solution**: Environment-specific configurations, API keys, and deployment scripts
-   - **Impact**: Streamlined deployment and testing processes
+
+   Managing multiple environments (development, staging, production, and production2) with different configurations, API endpoints, and credentials created operational complexity. Each environment required separate API keys, different Salesforce endpoints, and environment-specific configurations. To streamline this, we implemented environment-specific configuration management with separate API keys for each environment per user, environment detection based on API keys, and automated deployment scripts for each environment. This solution streamlined deployment and testing processes while ensuring that configurations are properly isolated between environments, reducing the risk of cross-environment contamination and making it easier to manage multiple deployment targets.
 
 6. **Error Handling & Resilience**
-   - **Challenge**: Ensuring reliable processing despite network issues, API failures, and transient errors
-   - **Solution**: Implemented retry mechanisms, circuit breakers, comprehensive error logging, and job status tracking
-   - **Impact**: Improved system reliability and easier troubleshooting
+
+   Ensuring reliable processing despite network issues, API failures, and transient errors was critical for maintaining system availability. The previous system lacked comprehensive error handling, making it difficult to recover from failures or understand what went wrong. We implemented robust retry mechanisms with exponential backoff, circuit breakers to prevent cascading failures, comprehensive error logging with detailed stack traces, and job status tracking throughout the entire lifecycle. This solution improved system reliability significantly, as transient failures are now automatically retried, and persistent issues are quickly identified and isolated. The comprehensive error logging also makes troubleshooting much easier, as we can quickly identify the root cause of any issues.
 
 7. **Real-time Monitoring & Observability**
-   - **Challenge**: Need for comprehensive monitoring, logging, and analytics without impacting performance
-   - **Solution**: Built dashboard with real-time metrics, audit logging, error tracking, and performance monitoring
-   - **Impact**: Improved visibility and faster issue resolution
+
+   The need for comprehensive monitoring, logging, and analytics without impacting system performance was essential for operational visibility. The previous system lacked real-time monitoring capabilities, making it difficult to understand system health, identify bottlenecks, or track performance metrics. We built a comprehensive monitoring dashboard that provides real-time metrics on API calls, job queues, system health, and performance indicators. The dashboard includes audit logging for all API calls, error tracking with resolution workflows, and performance analytics with historical data. This solution provides improved visibility into system operations without impacting performance, as all monitoring is done asynchronously with minimal overhead. The dashboard enables faster issue resolution and proactive system management.
 
 8. **Migration from Monolithic to Microservice**
-   - **Challenge**: Migrating cron jobs and API calls from UNICEF server to new middleware without downtime
-   - **Solution**: Phased migration approach with comprehensive testing and rollback plans
-   - **Impact**: Successful migration with minimal disruption
+
+   Migrating cron jobs and API calls from the UNICEF server to the new middleware service without downtime was a critical operational challenge. The migration needed to be seamless to avoid disrupting ongoing operations and transactions. We implemented a phased migration approach that included comprehensive testing in staging environments, gradual rollout with feature flags, and detailed rollback plans for each phase. The migration process involved updating the UNICEF CMS to point to the new middleware API endpoints, migrating all cron jobs to the new server, and verifying that all functionality worked correctly in the new architecture. This solution resulted in a successful migration with minimal disruption, as we were able to test thoroughly before going live and had rollback procedures in place if any issues were encountered.
 
 9. **Security & Authentication**
-   - **Challenge**: Implementing secure API key management and authentication across multiple environments
-   - **Solution**: Environment-specific API keys with SHA-256 hash validation, JWT authentication, and role-based access control
-   - **Impact**: Enhanced security and access control
+
+   Implementing secure API key management and authentication across multiple environments while maintaining ease of use was a complex security challenge. The system needed to support multiple users, multiple environments, and different permission levels while ensuring that API keys are secure and properly validated. We implemented environment-specific API keys with SHA-256 hash validation for fast lookup and security, JWT authentication for user sessions, and role-based access control (USER, ADMIN, SUPER_ADMIN) for fine-grained permissions. Each user can have separate API keys for each environment, and API keys are stored securely with hashed validation. This solution enhanced security and access control while maintaining usability, as users can easily manage their API keys through the dashboard, and the system automatically validates keys and permissions for each request.
 
 10. **Documentation & Knowledge Transfer**
-    - **Challenge**: Creating comprehensive documentation for users, developers, and operations team
-    - **Solution**: Developed extensive documentation including API docs, user guides, architecture docs, and deployment guides
-    - **Impact**: Improved maintainability and knowledge transfer
+
+    Creating comprehensive documentation for users, developers, and the operations team was essential for long-term maintainability and knowledge transfer. The previous system lacked adequate documentation, making it difficult for new team members to understand the system or for existing team members to troubleshoot issues. We developed extensive documentation including API documentation with all endpoints and examples, user guides for dashboard usage and common tasks, architecture documentation explaining system design and components, deployment guides for all environments, security and error handling best practices, and monitoring and troubleshooting guides. This solution improved maintainability and knowledge transfer significantly, as team members can now quickly understand the system, troubleshoot issues, and onboard new members. The documentation is kept up-to-date with system changes and serves as a valuable resource for all stakeholders.
 
 ### Operational Challenges
 
-1. **Server Migration**: Coordinating migration from UNICEF server to Biznet server
-2. **Cron Job Migration**: Ensuring all scheduled jobs are properly migrated and tested
-3. **API Integration**: Updating UNICEF CMS to use new middleware API endpoints
-4. **Monitoring Setup**: Establishing monitoring and alerting for new infrastructure
-5. **Performance Optimization**: Tuning system for high-volume processing
-6. **Disaster Recovery**: Implementing backup and recovery procedures
+Coordinating the migration from the UNICEF server to Biznet server required careful planning and coordination between multiple teams and stakeholders. We ensured all scheduled cron jobs were properly migrated and tested in the new environment before going live, which involved mapping all existing cron jobs, verifying their functionality, and testing them thoroughly in staging. Updating the UNICEF CMS to use the new middleware API endpoints required code changes and careful testing to ensure compatibility. We established comprehensive monitoring and alerting for the new infrastructure to ensure we can quickly identify and respond to any issues. Performance optimization was an ongoing effort, as we tuned the system for high-volume processing by optimizing database queries, configuring Redis clusters, and tuning worker processes. Finally, we implemented backup and recovery procedures to ensure data safety and system resilience, including automated database backups, disaster recovery plans, and regular backup testing.
 
 ---
 
