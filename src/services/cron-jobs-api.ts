@@ -1,37 +1,8 @@
-import axios from 'axios';
+import { getApiClient } from '@/lib/api-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/cron-jobs`,
-  timeout: 10000,
-});
-
-// Add request interceptor to include JWT token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('jwt_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+// Use dynamic API client that switches based on current environment
+// Note: cron-jobs endpoints use /cron-jobs prefix, so we'll add it in each request
+const apiClient = getApiClient();
 
 export interface CronJob {
   id: string;
@@ -110,12 +81,12 @@ export class CronJobsApiService {
     status?: string;
     type?: string;
   } = {}): Promise<CronJobResponse> {
-    const response = await apiClient.get('/', { params });
+    const response = await apiClient.get('/cron-jobs/', { params });
     return response.data;
   }
 
   static async getCronJobStats(): Promise<CronJobStats> {
-    const response = await apiClient.get('/stats');
+    const response = await apiClient.get('/cron-jobs/stats');
     return response.data;
   }
 
@@ -124,22 +95,22 @@ export class CronJobsApiService {
     limit?: number;
     jobId?: string;
   } = {}): Promise<CronJobHistoryResponse> {
-    const response = await apiClient.get('/history', { params });
+    const response = await apiClient.get('/cron-jobs/history', { params });
     return response.data;
   }
 
   static async runCronJob(jobType: string): Promise<{ success: boolean; message: string; timestamp: string }> {
-    const response = await apiClient.post(`/${jobType}/run`);
+    const response = await apiClient.post(`/cron-jobs/${jobType}/run`);
     return response.data;
   }
 
   static async toggleCronJob(jobType: string, enabled: boolean): Promise<{ success: boolean; message: string; enabled: boolean; timestamp: string }> {
-    const response = await apiClient.put(`/${jobType}/toggle`, { enabled });
+    const response = await apiClient.put(`/cron-jobs/${jobType}/toggle`, { enabled });
     return response.data;
   }
 
   static async getCronSchedules(): Promise<CronSchedule[]> {
-    const response = await apiClient.get('/schedules');
+    const response = await apiClient.get('/cron-jobs/schedules');
     return response.data;
   }
 }

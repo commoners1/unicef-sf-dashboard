@@ -53,7 +53,7 @@ function PageTitleUpdater() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/dashboard">
         <PageTitleUpdater />
         <Routes>
           <Route path="/login" element={<LoginPage />} />

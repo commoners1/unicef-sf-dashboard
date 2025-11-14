@@ -1,37 +1,7 @@
-import axios from 'axios';
+import { getApiClient } from '@/lib/api-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to include auth token
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Add response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized - redirect to login
-      localStorage.removeItem('jwt_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+// Use dynamic API client that switches based on current environment
+const apiClient = getApiClient();
 
 export interface User {
   id: string;

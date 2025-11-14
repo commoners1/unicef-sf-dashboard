@@ -1,15 +1,7 @@
-import axios from 'axios';
+import { getApiClient } from '@/lib/api-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-// Create axios instance for auth endpoints
-const authClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Use dynamic API client that switches based on current environment
+const authClient = getApiClient();
 
 export interface LoginCredentials {
   email: string;

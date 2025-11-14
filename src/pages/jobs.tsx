@@ -43,9 +43,7 @@ export default function JobsPage() {
       });
       
       // Check if data is an array and has the expected structure
-      if (Array.isArray(response.data)) {
-        console.log('This is array of jobs');
-      } else {
+      if (!Array.isArray(response.data)) {
         console.error('Response data is not an array:', response.data);
       }
       
@@ -75,8 +73,7 @@ export default function JobsPage() {
     await loadJobs(pagination.current, pagination.pageSize, filters);
   };
 
-  const handleView = (job: Job) => {
-    console.log('View job details:', job.id);
+  const handleView = (_job: Job) => {
     // TODO: Open job details modal
   };
 
@@ -406,8 +403,7 @@ export default function JobsPage() {
           pageSizeOptions: [5, 10, 20, 50],
         }}
         onPaginationChange={handlePageChange}
-        onSort={(field, direction) => {
-          console.log('Sort:', field, direction);
+        onSort={(_field, _direction) => {
           // TODO: Implement sorting
         }}
         onFilter={handleFilterChange}

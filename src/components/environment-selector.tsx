@@ -56,26 +56,34 @@ export function EnvironmentSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[200px] p-1">
-        {environments.map((env) => (
-          <DropdownMenuItem
-            key={env.id}
-            onClick={() => switchEnvironment(env.id)}
-            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent/50 rounded-sm"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                {getEnvironmentIcon(env.isProduction)}
-                <span className="text-sm font-medium">
-                  {getEnvironmentName(env.name)}
-                </span>
+        {environments.map((env) => {
+          const isDisabled = env.id === 'staging' || env.id === 'development';
+          return (
+            <DropdownMenuItem
+              key={env.id}
+              onClick={() => !isDisabled && switchEnvironment(env.id)}
+              disabled={isDisabled}
+              className={`flex items-center justify-between px-3 py-2 rounded-sm ${
+                isDisabled 
+                  ? 'cursor-not-allowed opacity-50' 
+                  : 'cursor-pointer hover:bg-accent/50'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  {getEnvironmentIcon(env.isProduction)}
+                  <span className="text-sm font-medium">
+                    {getEnvironmentName(env.name)}
+                  </span>
+                </div>
+                {getEnvironmentBadge(env.isProduction)}
               </div>
-              {getEnvironmentBadge(env.isProduction)}
-            </div>
-            {currentEnvironment.id === env.id && (
-              <Check className="h-4 w-4 text-primary" />
-            )}
-          </DropdownMenuItem>
-        ))}
+              {currentEnvironment.id === env.id && (
+                <Check className="h-4 w-4 text-primary" />
+              )}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

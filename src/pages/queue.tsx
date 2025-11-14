@@ -51,13 +51,11 @@ export function QueuePage() {
     const interval = setInterval(loadQueueData, 30000);
     return () => clearInterval(interval);
   }, []);
-  const handlePauseQueue = (queueName: string) => {
-    console.log('Pause queue:', queueName);
+  const handlePauseQueue = (_queueName: string) => {
     // TODO: Implement queue pause functionality
   };
 
-  const handleResumeQueue = (queueName: string) => {
-    console.log('Resume queue:', queueName);
+  const handleResumeQueue = (_queueName: string) => {
     // TODO: Implement queue resume functionality
   };
 

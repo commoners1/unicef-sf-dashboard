@@ -28,6 +28,17 @@ export const PERMISSIONS = {
 } as const;
 
 export const ROLE_PERMISSIONS = {
+  // SUPER_ADMIN: Full access to everything (all permissions)
+  // In production mode, SUPER_ADMIN always has access to all menus
+  SUPER_ADMIN: Object.values(PERMISSIONS),
+  
+  // ADMIN: Comprehensive access with management capabilities
+  // RECOMMENDATION: ADMIN has full access to all permissions (same as SUPER_ADMIN)
+  // This allows ADMIN to manage users, API keys, queues, cron jobs, and system settings
+  // Alternative: If you want to restrict ADMIN, you can remove MANAGE_SYSTEM:
+  // ADMIN: Object.values(PERMISSIONS).filter(p => p.resource !== 'system' || p.action !== 'manage'),
+  ADMIN: Object.values(PERMISSIONS),
+  // Legacy lowercase role support
   admin: Object.values(PERMISSIONS),
   operator: [
     PERMISSIONS.VIEW_AUDIT_LOGS,
@@ -50,16 +61,28 @@ export const ROLE_PERMISSIONS = {
 export function usePermissions() {
   const { user } = useAuthStore();
   
+  // Check if user is SUPER_ADMIN (uppercase or lowercase)
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin';
+  
   // Development mode: allow all permissions if no user or in development
-  const isDevelopmentMode = !user || import.meta.env.DEV || user.role === 'admin';
+  // In production, SUPER_ADMIN always has all permissions
+  const isDevelopmentMode = !user || import.meta.env.DEV;
+  const hasFullAccess = isDevelopmentMode || isSuperAdmin;
 
   const hasPermission = (permission: Permission): boolean => {
-    // In development mode, allow all permissions
-    if (isDevelopmentMode) return true;
+    // SUPER_ADMIN in production has full access to all permissions
+    if (hasFullAccess) return true;
     
     if (!user) return false;
     
-    const userPermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || [];
+    // Normalize role to handle both uppercase and lowercase
+    const normalizedRole = user.role?.toUpperCase() === 'SUPER_ADMIN' 
+      ? 'SUPER_ADMIN' 
+      : user.role?.toUpperCase() === 'ADMIN'
+      ? 'ADMIN'
+      : user.role?.toLowerCase();
+    
+    const userPermissions = ROLE_PERMISSIONS[normalizedRole as keyof typeof ROLE_PERMISSIONS] || [];
     return userPermissions.some(p => 
       p.action === permission.action && p.resource === permission.resource
     );
@@ -83,7 +106,8 @@ export function usePermissions() {
     hasAllPermissions,
     canAccess,
     userRole: user?.role,
-    isAdmin: user?.role === 'admin',
+    isSuperAdmin: isSuperAdmin,
+    isAdmin: user?.role === 'ADMIN' || user?.role === 'admin',
     isOperator: user?.role === 'operator',
     isViewer: user?.role === 'viewer',
   };

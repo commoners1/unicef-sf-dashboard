@@ -22,8 +22,8 @@ cp -r dist deploy/
 
 # 4) Zip for upload
 echo "[4/4] Zipping dist -> frontend-dist.zip"
-rm -f frontend-dist.zip
-( cd deploy && zip -r ../frontend-dist.zip dist )
+# rm -f frontend-dist.zip
+# ( cd deploy && zip -r ../frontend-dist.zip dist )
 
 echo
 echo "✅ Done! Upload the CONTENTS of 'dist/' (or unzip 'frontend-dist.zip')"

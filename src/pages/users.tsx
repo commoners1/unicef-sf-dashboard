@@ -70,18 +70,15 @@ export default function UsersPage() {
     await loadUsers(pagination.current, pagination.pageSize);
   };
 
-  const handleView = (user: User) => {
-    console.log('View user:', user);
+  const handleView = (_user: User) => {
     // TODO: Open user details modal
   };
 
-  const handleEdit = (user: User) => {
-    console.log('Edit user:', user);
+  const handleEdit = (_user: User) => {
     // TODO: Open edit modal
   };
 
-  const handleDelete = (user: User) => {
-    console.log('Delete user:', user);
+  const handleDelete = (_user: User) => {
     // TODO: Show confirmation dialog
   };
 
@@ -129,13 +126,11 @@ export default function UsersPage() {
   };
 
 
-  const handleFilterChange = (filters: any) => {
-    console.log('Filter change:', filters);
+  const handleFilterChange = (_filters: any) => {
     // TODO: Implement filtering
   };
 
-  const handleSearch = (searchTerm: string) => {
-    console.log('Search:', searchTerm);
+  const handleSearch = (_searchTerm: string) => {
     // TODO: Implement search
   };
 
@@ -380,8 +375,7 @@ export default function UsersPage() {
           pageSizeOptions: [5, 10, 20, 50],
         }}
         onPaginationChange={handlePageChange}
-        onSort={(field, direction) => {
-          console.log('Sort:', field, direction);
+        onSort={(_field, _direction) => {
           // TODO: Implement sorting
         }}
         onFilter={handleFilterChange}

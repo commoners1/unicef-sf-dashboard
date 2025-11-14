@@ -81,8 +81,7 @@ export default function ErrorsPage() {
     await Promise.all([loadErrors(pagination.current, pagination.pageSize, filters), loadStats()]);
   };
 
-  const handleView = (error: Error) => {
-    console.log('View error details:', error.id);
+  const handleView = (_error: Error) => {
     // TODO: Open error details modal
   };
 
@@ -349,8 +348,7 @@ export default function ErrorsPage() {
           pageSizeOptions: [5, 10, 20, 50],
         }}
         onPaginationChange={handlePageChange}
-        onSort={(field, direction) => {
-          console.log('Sort:', field, direction);
+        onSort={(_field, _direction) => {
           // TODO: Implement sorting
         }}
         onFilter={handleFilterChange}

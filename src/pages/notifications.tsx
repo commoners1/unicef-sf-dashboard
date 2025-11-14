@@ -129,38 +129,31 @@ export default function NotificationsPage() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [activeTab, setActiveTab] = useState<string>('notifications');
 
-  const handleMarkAsRead = (notificationId: string) => {
-    console.log('Marking notification as read:', notificationId);
+  const handleMarkAsRead = (_notificationId: string) => {
     // TODO: Mark notification as read
   };
 
   const handleMarkAllAsRead = () => {
-    console.log('Marking all notifications as read');
     // TODO: Mark all notifications as read
   };
 
-  const handleDeleteNotification = (notificationId: string) => {
-    console.log('Deleting notification:', notificationId);
+  const handleDeleteNotification = (_notificationId: string) => {
     // TODO: Delete notification
   };
 
-  const handleEditChannel = (channelId: string) => {
-    console.log('Editing channel:', channelId);
+  const handleEditChannel = (_channelId: string) => {
     // TODO: Edit channel configuration
   };
 
-  const handleToggleChannel = (channelId: string) => {
-    console.log('Toggling channel:', channelId);
+  const handleToggleChannel = (_channelId: string) => {
     // TODO: Toggle channel enabled status
   };
 
-  const handleEditRule = (ruleId: string) => {
-    console.log('Editing rule:', ruleId);
+  const handleEditRule = (_ruleId: string) => {
     // TODO: Edit notification rule
   };
 
-  const handleToggleRule = (ruleId: string) => {
-    console.log('Toggling rule:', ruleId);
+  const handleToggleRule = (_ruleId: string) => {
     // TODO: Toggle rule enabled status
   };
 
