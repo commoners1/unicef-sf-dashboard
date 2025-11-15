@@ -1,6 +1,6 @@
 % Changelog & Release Notes
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 Maintain this document to summarize user-facing changes per release. Follow keep-a-changelog style and semantic versioning.
 
@@ -8,6 +8,12 @@ Maintain this document to summarize user-facing changes per release. Follow keep
 - Initial documentation overhaul:
   - Added architecture, API integration, environment runbook, user guide, monitoring, testing strategy.
   - Expanded security roadmap and threat model.
+
+## 1.2.0 (2025-11-15)
+- Added support for new Salesforce cron job endpoints:
+  - Display pledge cron job data in endpoints page
+  - Display one-off cron job data in endpoints page
+  - Integration with backend API endpoints for retrieving undelivered cron job items
 
 ## 1.1.0 (2025-01-XX)
 - Enhanced security features:

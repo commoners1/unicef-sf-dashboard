@@ -1,6 +1,6 @@
 % API Integration Guide
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 ## Purpose
 This guide documents how the frontend communicates with the Salesforce Middleware APIs. Use it when adding new endpoints, debugging requests, or aligning with backend teams.

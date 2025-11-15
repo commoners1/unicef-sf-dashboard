@@ -1,6 +1,6 @@
 % Admin User Guide
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 ## Audience
 Operational users administering Salesforce Middleware via the SF Dashboard. Assumes valid credentials and assigned role (Admin, Operator, Viewer).

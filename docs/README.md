@@ -1,6 +1,6 @@
 % Documentation Index
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 Use this index to navigate the SF Dashboard documentation set. Update links when new guides are added.
 

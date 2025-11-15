@@ -1,6 +1,6 @@
 % Monitoring & Troubleshooting
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 ## Key Signals
 

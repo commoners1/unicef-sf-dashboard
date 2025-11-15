@@ -1,6 +1,6 @@
 % SF Dashboard Architecture
 
-Last updated: 2025-11-08
+Last updated: 15 November 2025
 
 ## System Overview
 The SF Dashboard is a React + Vite single-page application that provides operational visibility and controls for the Salesforce Middleware platform. The UI communicates exclusively with the middleware REST APIs (and optional WebSocket endpoints) to surface system metrics, manage users, and trigger exports. No server-side rendering is used; hosting can be fully static.
