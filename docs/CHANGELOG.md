@@ -9,6 +9,19 @@ Maintain this document to summarize user-facing changes per release. Follow keep
   - Added architecture, API integration, environment runbook, user guide, monitoring, testing strategy.
   - Expanded security roadmap and threat model.
 
+## 1.1.0 (2025-01-XX)
+- Enhanced security features:
+  - Comprehensive input validation and sanitization
+  - CSRF protection for all state-changing operations
+  - Client-side rate limiting
+  - Security event logging
+  - Enhanced error handling
+- Improved code quality:
+  - Reusable hooks (useAsyncData, useAutoRefresh, usePagination)
+  - Utility functions for error handling and file downloads
+  - Cleaner router implementation
+  - Better code organization
+
 ## 1.0.0 (YYYY-MM-DD)
 - Initial public release of SF Dashboard.
 - Core features: overview, users, queues, logs, exports, environment switching.

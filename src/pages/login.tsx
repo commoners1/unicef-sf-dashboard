@@ -167,7 +167,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="text-center text-xs text-gray-500">
-          <p>SF Middleware Dashboard v1.0.0</p>
+          <p>SF Middleware Dashboard v1.1.0</p>
           <p>© 2025 Salesforce Middleware. All rights reserved.</p>
         </div>
       </div>

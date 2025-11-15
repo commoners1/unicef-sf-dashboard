@@ -43,7 +43,7 @@ export function Header({ className }: HeaderProps) {
           <div className="flex items-center space-x-2">
             <h1 className="text-xl font-semibold">SF Middleware Dashboard</h1>
             <Badge variant="outline" className="text-xs">
-              v1.0.0
+              v1.1.0
             </Badge>
           </div>
         </div>
