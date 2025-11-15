@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/errors-api';
+import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/api/errors/errors-api';
+import { usePagination } from '@/hooks';
+import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
 import { 
   AlertTriangle, 
   Bug, 
@@ -20,11 +22,7 @@ export default function ErrorsPage() {
   const [stats, setStats] = useState<ErrorStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const { pagination, setPagination, handlePageChange: setPage } = usePagination();
   const [filters, setFilters] = useState<ErrorFilters>({});
 
   // Load data on component mount
@@ -53,13 +51,9 @@ export default function ErrorsPage() {
       });
     } catch (err) {
       console.error('Error loading errors:', err);
-      setError('Failed to load errors');
+      setError(getApiErrorMessage(err));
       setErrors([]);
-      setPagination({
-        current: 1,
-        pageSize: 10,
-        total: 0,
-      });
+      setPagination({ current: 1, pageSize: 10, total: 0 });
     } finally {
       setLoading(false);
     }
@@ -72,7 +66,7 @@ export default function ErrorsPage() {
       setStats(statsData);
     } catch (err) {
       console.error('Error loading stats:', err);
-      setError('Failed to load statistics');
+      setError(getApiErrorMessage(err));
     }
   };
 
@@ -92,42 +86,27 @@ export default function ErrorsPage() {
       await loadErrors(pagination.current, pagination.pageSize, filters);
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete error');
+      setError(getApiErrorMessage(err));
     }
   };
 
   const handleExport = async (error?: Error) => {
     try {
       if (error) {
-        const data = JSON.stringify(error, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `error-${error.id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadJSON(error, `error-${error.id}`);
       } else {
         const blob = await ErrorsApiService.exportErrors(filters, 'csv');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `errors-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadBlob(blob, `errors-${formatDateForFilename()}.csv`);
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Export failed');
+      setError(getApiErrorMessage(err));
     }
   };
 
   // Handle pagination change
   const handlePageChange = (page: number) => {
+    setPage(page);
     loadErrors(page, pagination.pageSize, filters);
   };
 
@@ -150,6 +129,7 @@ export default function ErrorsPage() {
       dataIndex: 'type',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Levels', value: '' },
         { label: 'Critical', value: 'critical' },
@@ -181,6 +161,7 @@ export default function ErrorsPage() {
       dataIndex: 'message',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (error) => (
         <div className="max-w-md">
           <div className="font-medium truncate">{error.message}</div>
@@ -196,6 +177,7 @@ export default function ErrorsPage() {
       dataIndex: 'source',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (error) => (
         <div className="flex items-center space-x-2">
           <Code className="h-4 w-4 text-muted-foreground" />
@@ -208,6 +190,7 @@ export default function ErrorsPage() {
       title: 'Occurrences',
       dataIndex: 'occurrences',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (error) => (
         <div className="text-center">
           <div className="font-bold">{error.occurrences}</div>
@@ -223,6 +206,7 @@ export default function ErrorsPage() {
       dataIndex: 'resolved',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All', value: '' },
         { label: 'Resolved', value: 'true' },
@@ -239,6 +223,7 @@ export default function ErrorsPage() {
       title: 'Last Seen',
       dataIndex: 'lastSeen',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (error) => (
         <div className="flex items-center space-x-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
@@ -251,22 +236,23 @@ export default function ErrorsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Error Tracking</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Error Tracking</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and manage application errors and exceptions
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleExport()}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
+          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">Export</span>
           </Button>
         </div>
       </div>

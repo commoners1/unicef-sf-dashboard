@@ -13,7 +13,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { CronJobsApiService, type CronJob, type CronJobStats, type CronJobHistory, type CronSchedule } from '@/services/cron-jobs-api';
+import { CronJobsApiService, type CronJob, type CronJobStats, type CronJobHistory, type CronSchedule } from '@/services/api/cron-jobs/cron-jobs-api';
 
 const CronJobsPage = () => {
   const [cronJobs, setCronJobs] = useState<CronJob[]>([]);

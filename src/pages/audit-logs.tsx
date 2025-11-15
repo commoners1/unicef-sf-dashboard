@@ -23,7 +23,7 @@ import {
   Hash
 } from 'lucide-react';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
-import { AuditApiService } from '@/services/audit-api';
+import { AuditApiService } from '@/services/api/audit/audit-api';
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -149,6 +149,7 @@ export default function AuditLogsPage() {
       dataIndex: 'action',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Actions', value: '' },
         { label: 'API Call', value: 'API_CALL' },
@@ -173,6 +174,7 @@ export default function AuditLogsPage() {
       dataIndex: 'endpoint',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (_, log) => (
         <div className="flex items-center space-x-2">
           <Globe className="h-4 w-4 text-muted-foreground" />
@@ -189,6 +191,7 @@ export default function AuditLogsPage() {
       dataIndex: 'user',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Users', value: '' },
         ...Array.from(new Set(logs.map(l => l.user?.name).filter(Boolean))).map(name => ({
@@ -217,6 +220,7 @@ export default function AuditLogsPage() {
       dataIndex: 'statusCode',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All Status', value: '' },
         { label: 'Success (2xx)', value: '2xx' },
@@ -296,22 +300,23 @@ export default function AuditLogsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Audit Logs</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and analyze system activity and API usage
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleExport()}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
+          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">Export</span>
           </Button>
         </div>
       </div>

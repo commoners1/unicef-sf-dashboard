@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/stores/auth-store';
+import { useAuthStore } from '@/features/auth';
 
 export interface Permission {
   action: string;

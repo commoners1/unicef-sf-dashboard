@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import type { AuditLog } from '@/types/audit';
 import { formatDistanceToNow } from 'date-fns';
+import { ResponsiveTable } from '@/components/shared/responsive-table';
 
 interface AuditLogsTableProps {
   logs: AuditLog[];
@@ -117,105 +118,172 @@ export function AuditLogsTable({ logs, onViewDetails, onExport, isLoading }: Aud
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Endpoint</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {log.user ? (
-                          <>
-                            <div className="text-sm font-medium">{log.user.name}</div>
-                            <div className="text-xs text-muted-foreground">{log.user.email}</div>
-                          </>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">System</span>
-                        )}
-                        {log.apiKey && (
-                          <div className="text-xs text-muted-foreground">
-                            API: {log.apiKey.name}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">{log.action}</div>
-                        {log.type && (
-                          <div className="text-xs text-muted-foreground">{log.type}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getMethodColor(log.method)}>
-                        {log.method}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs truncate" title={log.endpoint}>
-                        {log.endpoint}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
+            <ResponsiveTable
+              data={logs}
+              getRowKey={(log) => log.id}
+              renderMobileCard={(log) => ({
+                id: (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getMethodColor(log.method)} className="text-xs">
+                      {log.method}
+                    </Badge>
+                    <span className="text-xs font-mono truncate">{log.endpoint}</span>
+                  </div>
+                ),
+                primaryFields: [
+                  {
+                    label: 'Action',
+                    value: <span className="text-xs">{log.action}</span>,
+                  },
+                  {
+                    label: 'Status',
+                    value: (
+                      <div className="flex items-center gap-1">
                         {getStatusIcon(log.statusCode)}
-                        <Badge variant={getStatusColor(log.statusCode)}>
+                        <Badge variant={getStatusColor(log.statusCode)} className="text-xs">
                           {log.statusCode}
                         </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{formatDuration(log.duration)}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-mono">{log.ipAddress}</span>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onViewDetails(log)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onExport(log)}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Export
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    ),
+                  },
+                  {
+                    label: 'User',
+                    value: (
+                      <span className="text-xs">
+                        {log.user ? log.user.name : 'System'}
+                      </span>
+                    ),
+                  },
+                ],
+                secondaryFields: [
+                  {
+                    label: 'Timestamp',
+                    value: (
+                      <span className="text-xs">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </span>
+                    ),
+                  },
+                  {
+                    label: 'Duration',
+                    value: <span className="text-xs">{formatDuration(log.duration)}</span>,
+                  },
+                  {
+                    label: 'IP Address',
+                    value: <span className="text-xs font-mono">{log.ipAddress}</span>,
+                  },
+                  {
+                    label: 'Type',
+                    value: <span className="text-xs">{log.type || 'N/A'}</span>,
+                  },
+                ],
+                actions: {
+                  view: () => onViewDetails(log),
+                  copy: () => onExport(log),
+                },
+              })}
+              emptyMessage="No audit logs found"
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Endpoint</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>IP Address</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {log.user ? (
+                            <>
+                              <div className="text-sm font-medium">{log.user.name}</div>
+                              <div className="text-xs text-muted-foreground">{log.user.email}</div>
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">System</span>
+                          )}
+                          {log.apiKey && (
+                            <div className="text-xs text-muted-foreground">
+                              API: {log.apiKey.name}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">{log.action}</div>
+                          {log.type && (
+                            <div className="text-xs text-muted-foreground">{log.type}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getMethodColor(log.method)}>
+                          {log.method}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-xs truncate" title={log.endpoint}>
+                          {log.endpoint}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(log.statusCode)}
+                          <Badge variant={getStatusColor(log.statusCode)}>
+                            {log.statusCode}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{formatDuration(log.duration)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-mono">{log.ipAddress}</span>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onViewDetails(log)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onExport(log)}>
+                              <Download className="mr-2 h-4 w-4" />
+                              Export
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
           </div>
         </CardContent>
       </Card>

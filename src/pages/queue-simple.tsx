@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageLoading } from '@/components/ui/loading';
 import { 
   Play, 
   RefreshCw, 
@@ -10,7 +11,7 @@ import {
   Activity,
   Download
 } from 'lucide-react';
-import { QueueApiService, type QueueHealth, type Job } from '@/services/queue-api';
+import { QueueApiService, type QueueHealth, type Job } from '@/services/api/queue/queue-api';
 import { toast } from 'sonner';
 
 export default function QueuePageSimple() {
@@ -117,23 +118,20 @@ export default function QueuePageSimple() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Queue Management</h1>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Queue Management</h1>
         </div>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading queue data...</p>
-        </div>
+        <PageLoading text="Loading queue data" subtitle="Fetching job status and queue health information" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Queue Management</h1>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Queue Management</h1>
         </div>
         <div className="text-center py-8">
           <p className="text-destructive mb-4">{error}</p>
@@ -147,67 +145,73 @@ export default function QueuePageSimple() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Queue Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Queue Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and manage background job processing
           </p>
         </div>
-        <Button onClick={handleRefresh} disabled={isLoading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+        <Button onClick={handleRefresh} disabled={isLoading} size="sm" className="w-full sm:w-auto">
+          <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
       {/* Queue Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Salesforce Queue</CardTitle>
-            <Workflow className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Salesforce Queue</CardTitle>
+            <Workflow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {queueHealth?.queues?.salesforce?.waiting || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs
             </p>
-            {getStatusBadge(queueHealth?.queues?.salesforce?.health || 'unknown')}
+            <div className="mt-2">
+              {getStatusBadge(queueHealth?.queues?.salesforce?.health || 'unknown')}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Email Queue</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Email Queue</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {queueHealth?.queues?.email?.waiting || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs
             </p>
-            {getStatusBadge(queueHealth?.queues?.email?.health || 'unknown')}
+            <div className="mt-2">
+              {getStatusBadge(queueHealth?.queues?.email?.health || 'unknown')}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Notifications</CardTitle>
+            <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {queueHealth?.queues?.notifications?.waiting || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs
             </p>
-            {getStatusBadge(queueHealth?.queues?.notifications?.health || 'unknown')}
+            <div className="mt-2">
+              {getStatusBadge(queueHealth?.queues?.notifications?.health || 'unknown')}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -215,24 +219,24 @@ export default function QueuePageSimple() {
       {/* Queue Controls */}
       <Card>
         <CardHeader>
-          <CardTitle>Queue Controls</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Queue Controls</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex space-x-4">
-            <Button onClick={handleForceFlush}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <Button onClick={handleForceFlush} size="sm" className="w-full sm:w-auto">
               <Play className="h-4 w-4 mr-2" />
-              Force Flush Batch
+              <span>Flush Batch</span>
             </Button>
-            <Button variant="outline" onClick={handleRefresh}>
+            <Button variant="outline" onClick={handleRefresh} size="sm" className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Data
+              <span>Refresh</span>
             </Button>
             <Button variant="outline" onClick={() => {
               // TODO: Implement export functionality
               toast.info('Export functionality coming soon');
-            }}>
+            }} size="sm" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
-              Export Logs
+              <span>Export</span>
             </Button>
           </div>
         </CardContent>
@@ -241,18 +245,18 @@ export default function QueuePageSimple() {
       {/* Recent Jobs */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Jobs</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Recent Jobs</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentJobs.length > 0 ? (
               recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-2 h-2 rounded-full ${getJobStatusColor(job.status)}`}></div>
-                    <div>
-                      <div className="font-medium">{job.name || `${job.queue} Job`}</div>
-                      <div className="text-sm text-muted-foreground">
+                <div key={job.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-3 sm:p-4 border rounded-lg">
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getJobStatusColor(job.status)}`}></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm sm:text-base truncate">{job.name || `${job.queue} Job`}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">
                         {job.status === 'active' ? 'Processing' : 
                          job.status === 'completed' ? `Completed ${formatTimestamp(job.finishedOn || job.processedOn || job.timestamp)}` :
                          job.status === 'failed' ? `Failed ${formatTimestamp(job.finishedOn || job.processedOn || job.timestamp)}` :
@@ -260,10 +264,10 @@ export default function QueuePageSimple() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2 sm:space-x-2 flex-shrink-0">
                     {getJobStatusBadge(job.status)}
                     {job.attemptsMade > 0 && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {job.attemptsMade} attempts
                       </span>
                     )}
@@ -271,7 +275,7 @@ export default function QueuePageSimple() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-muted-foreground text-sm">
                 No recent jobs found
               </div>
             )}

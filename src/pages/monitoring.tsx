@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MonitoringApiService, type MonitoringHealth, type DetailedStats } from '@/services/monitoring-api';
+import { MonitoringApiService, type MonitoringHealth, type DetailedStats } from '@/services/api/monitoring/monitoring-api';
 import { 
   Monitor, 
   Activity, 
@@ -198,35 +198,37 @@ export default function MonitoringPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Real-time Monitor</h1>
-          <p className="text-muted-foreground">
-            Live monitoring of queue processing and system health
-            {lastUpdate && (
-              <span className="ml-2 text-xs">
-                Last updated: {lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-sm text-muted-foreground">
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Real-time Monitor</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Live monitoring of queue processing and system health
+              {lastUpdate && (
+                <span className="block sm:inline sm:ml-2 text-xs mt-1 sm:mt-0">
+                  Last updated: {lastUpdate.toLocaleTimeString()}
+                </span>
+              )}
+            </p>
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={handleForceFlush}>
-              <Settings className="h-4 w-4 mr-2" />
-              Force Flush
-            </Button>
-            <Button size="sm" onClick={loadMonitoringData} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-sm text-muted-foreground">
+                {isConnected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={handleForceFlush} className="flex-1 sm:flex-initial">
+                <Settings className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Force Flush</span>
+              </Button>
+              <Button size="sm" onClick={loadMonitoringData} disabled={isLoading} className="flex-1 sm:flex-initial">
+                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
       </div>

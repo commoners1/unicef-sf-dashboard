@@ -41,6 +41,7 @@ export const environments: EnvironmentConfig[] = [
     apiUrl: 'http://localhost:3000',
     wsUrl: 'ws://localhost:3000',
     isProduction: false,
+    enableCSRF: false, // Disable CSRF for localhost (CORS may not be configured)
     features: {
       realTimeLogs: true,
       advancedAnalytics: false,
@@ -54,4 +55,4 @@ export const environments: EnvironmentConfig[] = [
   },
 ];
 
-export const defaultEnvironment = environments[1];
+export const defaultEnvironment = environments[2];

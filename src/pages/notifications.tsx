@@ -192,37 +192,39 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Notifications</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage system notifications and alert channels
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {unreadCount > 0 && (
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
-              <Check className="mr-2 h-4 w-4" />
-              Mark All Read
+            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} className="flex-1 sm:flex-initial min-w-[100px]">
+              <Check className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Mark All Read</span>
+              <span className="sm:hidden">Mark Read</span>
             </Button>
           )}
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Rule
+          <Button size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">New Rule</span>
+            <span className="sm:hidden">New Rule</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Notifications</CardTitle>
-            <Bell className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Notifications</CardTitle>
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{notifications.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{notifications.length}</div>
             <p className="text-xs text-muted-foreground">
               All time
             </p>
@@ -231,11 +233,11 @@ export default function NotificationsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unread</CardTitle>
-            <Bell className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Unread</CardTitle>
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{unreadCount}</div>
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{unreadCount}</div>
             <p className="text-xs text-muted-foreground">
               Requiring attention
             </p>
@@ -244,11 +246,11 @@ export default function NotificationsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Channels</CardTitle>
-            <Settings className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Channels</CardTitle>
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {channels.filter(c => c.enabled).length}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -259,11 +261,11 @@ export default function NotificationsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Rules</CardTitle>
-            <Settings className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Rules</CardTitle>
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-xl sm:text-2xl font-bold text-purple-600">
               {rules.filter(r => r.enabled).length}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -274,40 +276,40 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="notifications" className="flex items-center space-x-2">
-            <Bell className="h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="notifications" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Notifications</span>
           </TabsTrigger>
-          <TabsTrigger value="channels" className="flex items-center space-x-2">
-            <Settings className="h-4 w-4" />
+          <TabsTrigger value="channels" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Channels</span>
           </TabsTrigger>
-          <TabsTrigger value="rules" className="flex items-center space-x-2">
-            <AlertTriangle className="h-4 w-4" />
+          <TabsTrigger value="rules" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Rules</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
-            <Activity className="h-4 w-4" />
+          <TabsTrigger value="analytics" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Analytics</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
+        <TabsContent value="notifications" className="space-y-4 sm:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Notifications</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Recent Notifications</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {/* Filters */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="px-2 py-1 border rounded text-sm"
+                    className="px-3 py-1.5 sm:py-1 border rounded-md text-xs sm:text-sm w-full sm:w-auto bg-background"
                   >
                     <option value="all">All Types</option>
                     <option value="critical">Critical</option>
@@ -319,7 +321,7 @@ export default function NotificationsPage() {
                   <select
                     value={selectedChannel}
                     onChange={(e) => setSelectedChannel(e.target.value)}
-                    className="px-2 py-1 border rounded text-sm"
+                    className="px-3 py-1.5 sm:py-1 border rounded-md text-xs sm:text-sm w-full sm:w-auto bg-background"
                   >
                     <option value="all">All Channels</option>
                     <option value="email">Email</option>
@@ -329,7 +331,7 @@ export default function NotificationsPage() {
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="px-2 py-1 border rounded text-sm"
+                    className="px-3 py-1.5 sm:py-1 border rounded-md text-xs sm:text-sm w-full sm:w-auto bg-background"
                   >
                     <option value="all">All Statuses</option>
                     <option value="sent">Sent</option>
@@ -345,22 +347,22 @@ export default function NotificationsPage() {
                     return (
                       <div
                         key={notification.id}
-                        className={`p-3 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : ''}`}
+                        className={`p-3 sm:p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800' : ''}`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3">
-                            <ChannelIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                <h4 className="font-medium text-sm">{notification.title}</h4>
-                                <Badge variant={getTypeColor(notification.type) as any}>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                            <ChannelIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                                <h4 className="font-medium text-xs sm:text-sm break-words">{notification.title}</h4>
+                                <Badge variant={getTypeColor(notification.type) as any} className="text-xs">
                                   {notification.type}
                                 </Badge>
-                                <Badge variant={getStatusColor(notification.status) as any}>
+                                <Badge variant={getStatusColor(notification.status) as any} className="text-xs">
                                   {notification.status}
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                                 {notification.message}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
@@ -368,12 +370,13 @@ export default function NotificationsPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-1 flex-shrink-0 self-start sm:self-center">
                             {!notification.read && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleMarkAsRead(notification.id)}
+                                className="h-8 w-8 p-0"
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -382,6 +385,7 @@ export default function NotificationsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteNotification(notification.id)}
+                              className="h-8 w-8 p-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -397,11 +401,11 @@ export default function NotificationsPage() {
         </TabsContent>
 
         {/* Channels Tab */}
-        <TabsContent value="channels" className="space-y-6">
+        <TabsContent value="channels" className="space-y-4 sm:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Channels</CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <CardTitle className="text-base sm:text-lg">Notification Channels</CardTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Configure how notifications are delivered
               </p>
             </CardHeader>
@@ -410,25 +414,26 @@ export default function NotificationsPage() {
                 {channels.map((channel) => {
                   const Icon = channel.icon;
                   return (
-                    <div key={channel.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Icon className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <h4 className="font-medium">{channel.name}</h4>
-                            <p className="text-sm text-muted-foreground">
+                    <div key={channel.id} className="p-3 sm:p-4 border rounded-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm sm:text-base">{channel.name}</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {channel.enabled ? 'Enabled' : 'Disabled'}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={channel.enabled ? 'secondary' : 'outline'}>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <Badge variant={channel.enabled ? 'secondary' : 'outline'} className="text-xs">
                             {channel.enabled ? 'Active' : 'Inactive'}
                           </Badge>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditChannel(channel.id)}
+                            className="h-8 w-8 p-0"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -436,18 +441,19 @@ export default function NotificationsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleChannel(channel.id)}
+                            className="h-8 w-8 p-0"
                           >
                             {channel.enabled ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
-                      <div className="mt-3 p-3 bg-muted rounded text-sm">
+                      <div className="mt-3 p-3 bg-muted rounded text-xs sm:text-sm">
                         <p className="text-xs font-medium text-muted-foreground mb-1">Configuration:</p>
                         <div className="space-y-1">
                           {Object.entries(channel.config).map(([key, value]) => (
-                            <div key={key} className="flex justify-between">
+                            <div key={key} className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                               <span className="text-xs text-muted-foreground">{key}:</span>
-                              <span className="text-xs font-mono">{value}</span>
+                              <span className="text-xs font-mono break-all">{value}</span>
                             </div>
                           ))}
                         </div>
@@ -461,27 +467,27 @@ export default function NotificationsPage() {
         </TabsContent>
 
         {/* Rules Tab */}
-        <TabsContent value="rules" className="space-y-6">
+        <TabsContent value="rules" className="space-y-4 sm:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Rules</CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <CardTitle className="text-base sm:text-lg">Notification Rules</CardTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Define when and how notifications are triggered
               </p>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {rules.map((rule) => (
-                  <div key={rule.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-medium">{rule.name}</h4>
-                          <Badge variant={rule.enabled ? 'secondary' : 'outline'}>
+                  <div key={rule.id} className="p-3 sm:p-4 border rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm sm:text-base">{rule.name}</h4>
+                          <Badge variant={rule.enabled ? 'secondary' : 'outline'} className="text-xs">
                             {rule.enabled ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{rule.description}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{rule.description}</p>
                         <div className="mt-2">
                           <p className="text-xs font-medium text-muted-foreground">Conditions:</p>
                           <div className="flex flex-wrap gap-1 mt-1">
@@ -503,11 +509,12 @@ export default function NotificationsPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditRule(rule.id)}
+                          className="h-8 w-8 p-0"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -515,6 +522,7 @@ export default function NotificationsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleToggleRule(rule.id)}
+                          className="h-8 w-8 p-0"
                         >
                           {rule.enabled ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                         </Button>
@@ -528,21 +536,21 @@ export default function NotificationsPage() {
         </TabsContent>
 
         {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+        <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>Notification Trends</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                <div className="h-48 sm:h-64 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
-                    <Activity className="h-12 w-12 mx-auto mb-4" />
-                    <p>Chart visualization would go here</p>
-                    <p className="text-sm">Notification volume over time</p>
+                    <Activity className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-4" />
+                    <p className="text-xs sm:text-sm">Chart visualization would go here</p>
+                    <p className="text-xs">Notification volume over time</p>
                   </div>
                 </div>
               </CardContent>
@@ -550,13 +558,13 @@ export default function NotificationsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>Channel Performance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {channels.map((channel) => {
                     const Icon = channel.icon;
                     const sentCount = notifications.filter(n => n.channel === channel.id && n.status === 'sent').length;
@@ -564,17 +572,17 @@ export default function NotificationsPage() {
                     const successRate = sentCount + failedCount > 0 ? Math.round((sentCount / (sentCount + failedCount)) * 100) : 0;
                     
                     return (
-                      <div key={channel.id} className="flex items-center justify-between p-3 border rounded">
-                        <div className="flex items-center space-x-3">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">{channel.name}</p>
+                      <div key={channel.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 border rounded">
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                          <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium truncate">{channel.name}</p>
                             <p className="text-xs text-muted-foreground">
                               {sentCount} sent, {failedCount} failed
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right flex-shrink-0">
                           <p className="text-sm font-bold">{successRate}%</p>
                           <p className="text-xs text-muted-foreground">Success rate</p>
                         </div>
@@ -587,21 +595,21 @@ export default function NotificationsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>Alert Types</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {['critical', 'error', 'warning', 'success', 'info'].map((type) => {
                     const count = notifications.filter(n => n.type === type).length;
                     return (
                       <div key={type} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Badge variant={getTypeColor(type) as any}>{type}</Badge>
+                          <Badge variant={getTypeColor(type) as any} className="text-xs">{type}</Badge>
                         </div>
-                        <span className="text-sm font-medium">{count}</span>
+                        <span className="text-xs sm:text-sm font-medium">{count}</span>
                       </div>
                     );
                   })}
@@ -611,27 +619,27 @@ export default function NotificationsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>Recent Activity</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {notifications.slice(0, 5).map((notification) => {
                     const ChannelIcon = getChannelIcon(notification.channel);
                     return (
-                      <div key={notification.id} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center space-x-2">
-                          <ChannelIcon className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">{notification.title}</p>
+                      <div key={notification.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-2 border rounded">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <ChannelIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium truncate">{notification.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(notification.createdAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
-                        <Badge variant={getStatusColor(notification.status) as any}>
+                        <Badge variant={getStatusColor(notification.status) as any} className="text-xs flex-shrink-0 w-fit">
                           {notification.status}
                         </Badge>
                       </div>

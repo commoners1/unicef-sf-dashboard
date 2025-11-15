@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { QueueApiService, type Job, type JobFilters } from '@/services/queue-api';
+import { QueueApiService, type Job, type JobFilters } from '@/services/api/queue/queue-api';
 import { 
   FileText, 
   Clock, 
@@ -151,6 +151,7 @@ export default function JobsPage() {
       dataIndex: 'name',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (_, job) => (
         <div className="flex items-center space-x-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -167,6 +168,7 @@ export default function JobsPage() {
       dataIndex: 'queue',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Queues', value: '' },
         { label: 'Salesforce', value: 'salesforce' },
@@ -185,6 +187,7 @@ export default function JobsPage() {
       dataIndex: 'status',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Status', value: '' },
         { label: 'Completed', value: 'completed' },
@@ -235,6 +238,7 @@ export default function JobsPage() {
       title: 'Attempts',
       dataIndex: 'attemptsMade',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (_, job) => {
         const attempts = job.attemptsMade || 0;
         return (
@@ -252,6 +256,7 @@ export default function JobsPage() {
       title: 'Duration',
       dataIndex: 'processedOn',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (_, job) => {
         const duration = job.finishedOn && job.processedOn 
           ? job.finishedOn - job.processedOn 
@@ -271,6 +276,7 @@ export default function JobsPage() {
       title: 'Created',
       dataIndex: 'createdAt',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (_, job) => {
         const createdAt = job.createdAt || new Date().toISOString();
         return (
@@ -302,22 +308,23 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Job Details</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Job Details</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and manage queue jobs and their execution status
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleExport()}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
+          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">Export</span>
           </Button>
         </div>
       </div>

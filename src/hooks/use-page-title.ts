@@ -1,35 +1,9 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { ROUTE_TITLES } from '@/constants';
 
 // Get site name from environment or use default
 const SITE_NAME = import.meta.env.VITE_APP_TITLE || 'SF Middleware Dashboard';
-
-// Route to page title mapping
-const routeTitleMap: Record<string, string> = {
-  '/': 'Overview',
-  '/overview': 'Overview',
-  '/dashboard': 'Dashboard',
-  '/metrics': 'Key Metrics',
-  '/api-keys': 'API Keys',
-  '/endpoints': 'Endpoints',
-  '/usage': 'Usage Analytics',
-  '/users': 'Users',
-  '/permissions': 'Permissions',
-  '/queue': 'Queue Management',
-  '/jobs': 'Job Details',
-  '/monitoring': 'Real-time Monitor',
-  '/logs': 'Live Logs',
-  '/audit-logs': 'Audit Trail',
-  '/cron-jobs': 'Cron Jobs',
-  '/errors': 'Error Tracking',
-  '/performance': 'Performance',
-  '/reports': 'Reports',
-  '/settings': 'Settings',
-  '/notifications': 'Notifications',
-  '/login': 'Login',
-  '/unauthorized': 'Unauthorized',
-  '/not-found': 'Not Found',
-};
 
 // Helper function to get page title from route
 const getPageTitle = (pathname: string): string => {
@@ -45,8 +19,8 @@ const getPageTitle = (pathname: string): string => {
   }
 
   // Check for exact matches first
-  if (routeTitleMap[pathname]) {
-    return routeTitleMap[pathname];
+  if (ROUTE_TITLES[pathname]) {
+    return ROUTE_TITLES[pathname];
   }
 
   // For unmatched routes (404), return "Not Found"

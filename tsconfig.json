@@ -23,7 +23,13 @@
       "@/types/*": ["src/types/*"],
       "@/lib/*": ["src/lib/*"],
       "@/config/*": ["src/config/*"],
-      "@/services/*": ["src/services/*"]
+      "@/services/*": ["src/services/*"],
+      "@/services/api/*": ["src/services/api/*"],
+      "@/features/*": ["src/features/*"],
+      "@/app/*": ["src/app/*"],
+      "@/assets/*": ["src/assets/*"],
+      "@/constants/*": ["src/constants/*"],
+      "@/styles/*": ["src/styles/*"]
     },
 
     /* Bundler mode */

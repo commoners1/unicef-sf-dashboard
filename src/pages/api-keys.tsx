@@ -20,8 +20,9 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { Plus, Key, Eye, EyeOff, Trash2, Copy } from 'lucide-react';
-import { ApiKeyApiService } from '@/services/api-key-api';
+import { ApiKeyApiService } from '@/services/api/api-keys/api-key-api';
 import { toast } from 'sonner';
+import { ResponsiveTable } from '@/components/shared/responsive-table';
 
 interface ApiKey {
   id: string;
@@ -155,9 +156,9 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">API Keys</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">API Keys</h1>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -235,109 +236,164 @@ export default function ApiKeysPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Environment</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Used</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apiKeys.map((apiKey) => (
-                  <TableRow key={apiKey.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{apiKey.name}</div>
-                        {apiKey.description && (
-                          <div className="text-sm text-muted-foreground">
-                            {apiKey.description}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <code className="text-sm bg-muted px-2 py-1 rounded">
-                          {showKeys[apiKey.id] 
-                            ? apiKey.key 
-                            : `${apiKey.key.substring(0, 8)}...${apiKey.key.substring(apiKey.key.length - 8)}`
-                          }
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleKeyVisibility(apiKey.id)}
-                        >
-                          {showKeys[apiKey.id] ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(apiKey.key)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {apiKey.environment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={apiKey.isActive ? "default" : "secondary"}>
+            <ResponsiveTable
+              data={apiKeys}
+              getRowKey={(item) => item.id}
+              renderMobileCard={(apiKey) => ({
+                id: apiKey.name,
+                primaryFields: [
+                  {
+                    label: 'Key',
+                    value: (
+                      <code className="text-xs bg-muted px-2 py-1 rounded">
+                        {showKeys[apiKey.id] 
+                          ? apiKey.key 
+                          : `${apiKey.key.substring(0, 8)}...${apiKey.key.substring(apiKey.key.length - 8)}`
+                        }
+                      </code>
+                    ),
+                  },
+                  {
+                    label: 'Environment',
+                    value: <Badge variant="outline" className="text-xs">{apiKey.environment}</Badge>,
+                  },
+                  {
+                    label: 'Status',
+                    value: (
+                      <Badge variant={apiKey.isActive ? "default" : "secondary"} className="text-xs">
                         {apiKey.isActive ? "Active" : "Revoked"}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(apiKey.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      {apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        {apiKey.isActive ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRevokeKey(apiKey.id)}
-                          >
-                            Revoke
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleActivateKey(apiKey.id)}
-                            className="text-green-600 hover:text-green-600"
-                          >
-                            Activate
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteKey(apiKey.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    ),
+                  },
+                ],
+                secondaryFields: [
+                  {
+                    label: 'Description',
+                    value: <span className="text-xs">{apiKey.description || 'N/A'}</span>,
+                  },
+                  {
+                    label: 'Created',
+                    value: <span className="text-xs">{formatDate(apiKey.createdAt)}</span>,
+                  },
+                  {
+                    label: 'Last Used',
+                    value: <span className="text-xs">{apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}</span>,
+                  },
+                ],
+                actions: {
+                  copy: () => copyToClipboard(apiKey.key),
+                  delete: () => handleDeleteKey(apiKey.id),
+                  edit: apiKey.isActive 
+                    ? () => handleRevokeKey(apiKey.id)
+                    : () => handleActivateKey(apiKey.id),
+                },
+              })}
+              emptyMessage="No API keys found"
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Key</TableHead>
+                    <TableHead>Environment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Last Used</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {apiKeys.map((apiKey) => (
+                    <TableRow key={apiKey.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{apiKey.name}</div>
+                          {apiKey.description && (
+                            <div className="text-sm text-muted-foreground">
+                              {apiKey.description}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <code className="text-sm bg-muted px-2 py-1 rounded">
+                            {showKeys[apiKey.id] 
+                              ? apiKey.key 
+                              : `${apiKey.key.substring(0, 8)}...${apiKey.key.substring(apiKey.key.length - 8)}`
+                            }
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleKeyVisibility(apiKey.id)}
+                          >
+                            {showKeys[apiKey.id] ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(apiKey.key)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {apiKey.environment}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={apiKey.isActive ? "default" : "secondary"}>
+                          {apiKey.isActive ? "Active" : "Revoked"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(apiKey.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        {apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {apiKey.isActive ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRevokeKey(apiKey.id)}
+                            >
+                              Revoke
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleActivateKey(apiKey.id)}
+                              className="text-green-600 hover:text-green-600"
+                            >
+                              Activate
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteKey(apiKey.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
           )}
         </CardContent>
       </Card>
