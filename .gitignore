@@ -12,6 +12,7 @@ dist
 deploy
 dist-ssr
 *.local
+backup
 
 # Environment variables
 .env.local
