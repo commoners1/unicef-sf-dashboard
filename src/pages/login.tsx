@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuthStore } from '@/stores/auth-store';
+import { useAuthStore } from '@/features/auth';
+import { InputValidator, SecurityLogger, RateLimiter } from '@/lib/security-enhancements';
 import { Loader2, Shield, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -32,15 +33,36 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Input validation
     if (!email || !password) {
+      return;
+    }
+
+    // Validate email format
+    if (!InputValidator.validateEmail(email)) {
+      return;
+    }
+
+    // Sanitize inputs
+    const sanitizedEmail = InputValidator.sanitizeInput(email, { maxLength: 254 });
+    const sanitizedPassword = InputValidator.sanitizeInput(password, { maxLength: 128 });
+
+    // Rate limiting for login attempts
+    const rateLimitKey = `login:${sanitizedEmail}`;
+    const loginRateLimit = { maxRequests: 5, windowMs: 15 * 60 * 1000 }; // 5 attempts per 15 minutes
+    
+    if (!RateLimiter.checkLimit(rateLimitKey, loginRateLimit.maxRequests, loginRateLimit.windowMs)) {
+      SecurityLogger.logSuspiciousActivity('LOGIN_RATE_LIMIT_EXCEEDED', { email: sanitizedEmail });
       return;
     }
 
     try {
       setIsLoading(true);
-      await login(email, password);
+      SecurityLogger.logAuthEvent('login', { email: sanitizedEmail });
+      await login(sanitizedEmail, sanitizedPassword);
       navigate('/');
     } catch (error) {
+      SecurityLogger.logAuthEvent('failed_login', { email: sanitizedEmail });
       // Error is handled by the store
     } finally {
       setIsLoading(false);

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Monitor, RefreshCw, AlertTriangle, CheckCircle, Clock, User, Key } from 'lucide-react';
-import { LogsApiService, type AuditLog } from '@/services/logs-api';
+import { LogsApiService, type AuditLog } from '@/services/api/logs/logs-api';
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);

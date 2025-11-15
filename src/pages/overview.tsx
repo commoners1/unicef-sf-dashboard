@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MetricsCard } from '@/components/dashboard/metrics-card';
-import { useDashboardStore } from '@/stores/dashboard-store';
-import { AuditApiService } from '@/services/audit-api';
-import { QueueApiService } from '@/services/queue-api';
-import { ExportApiService } from '@/services/export-api';
-import { calculateSuccessRate } from '@/lib/utils';
+import { MetricsCard, useDashboardStore } from '@/features/dashboard';
+import { AuditApiService } from '@/services/api/audit/audit-api';
+import { QueueApiService } from '@/services/api/queue/queue-api';
+import { ExportApiService } from '@/services/api/export/export-api';
+import { calculateSuccessRate, getApiErrorMessage } from '@/lib/utils';
+import { useAutoRefresh } from '@/hooks';
 import { 
   Activity, 
   Database, 
@@ -40,7 +40,7 @@ export default function OverviewPage() {
       setAuditStats(stats);
       setQueueHealth(health);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setError(getApiErrorMessage(err));
       console.error('Error loading overview data:', err);
     } finally {
       setIsLoading(false);
@@ -53,10 +53,7 @@ export default function OverviewPage() {
   }, []);
 
   // Auto-refresh every 60 seconds
-  useEffect(() => {
-    const interval = setInterval(loadData, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  useAutoRefresh(loadData, { interval: 60000 });
 
   const handleExportOverview = async (format: 'csv' | 'json' = 'csv') => {
     try {

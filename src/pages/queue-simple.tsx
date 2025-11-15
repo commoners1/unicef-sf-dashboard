@@ -10,7 +10,7 @@ import {
   Activity,
   Download
 } from 'lucide-react';
-import { QueueApiService, type QueueHealth, type Job } from '@/services/queue-api';
+import { QueueApiService, type QueueHealth, type Job } from '@/services/api/queue/queue-api';
 import { toast } from 'sonner';
 
 export default function QueuePageSimple() {

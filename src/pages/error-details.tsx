@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import ErrorsApiService, { type Error } from '@/services/errors-api';
+import ErrorsApiService, { type Error } from '@/services/api/errors/errors-api';
 
 export default function ErrorDetailsPage() {
   const { id } = useParams<{ id: string }>();

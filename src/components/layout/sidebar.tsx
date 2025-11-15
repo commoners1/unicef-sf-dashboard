@@ -16,7 +16,7 @@ import {
   Bell,
   Clock
 } from 'lucide-react';
-import { useDashboardStore } from '@/stores/dashboard-store';
+import { useDashboardStore } from '@/features/dashboard';
 import { usePermissions, PERMISSIONS } from '@/hooks/use-permissions';
 
 interface SidebarProps {

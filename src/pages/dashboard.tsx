@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MetricsCard } from '@/components/dashboard/metrics-card';
-import { AuditApiService } from '@/services/audit-api';
-import { QueueApiService } from '@/services/queue-api';
-import { calculateSuccessRate } from '@/lib/utils';
+import { MetricsCard } from '@/features/dashboard';
+import { AuditApiService } from '@/services/api/audit/audit-api';
+import { QueueApiService } from '@/services/api/queue/queue-api';
+import { calculateSuccessRate, getApiErrorMessage } from '@/lib/utils';
+import { useAutoRefresh } from '@/hooks';
 import { 
   Activity, 
   Users, 
@@ -38,7 +39,7 @@ export default function DashboardPage() {
       setQueueHealth(health);
       setPerformanceMetrics(performance);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setError(getApiErrorMessage(err));
       console.error('Error loading dashboard data:', err);
     } finally {
       setIsLoading(false);
@@ -51,10 +52,7 @@ export default function DashboardPage() {
   }, []);
 
   // Auto-refresh every 60 seconds
-  useEffect(() => {
-    const interval = setInterval(loadData, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  useAutoRefresh(loadData, { interval: 60000 });
 
   // Calculate derived metrics
   const calculatedMetrics = {

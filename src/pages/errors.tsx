@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/errors-api';
+import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/api/errors/errors-api';
+import { usePagination } from '@/hooks';
+import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
 import { 
   AlertTriangle, 
   Bug, 
@@ -20,11 +22,7 @@ export default function ErrorsPage() {
   const [stats, setStats] = useState<ErrorStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const { pagination, setPagination, handlePageChange: setPage } = usePagination();
   const [filters, setFilters] = useState<ErrorFilters>({});
 
   // Load data on component mount
@@ -53,13 +51,9 @@ export default function ErrorsPage() {
       });
     } catch (err) {
       console.error('Error loading errors:', err);
-      setError('Failed to load errors');
+      setError(getApiErrorMessage(err));
       setErrors([]);
-      setPagination({
-        current: 1,
-        pageSize: 10,
-        total: 0,
-      });
+      setPagination({ current: 1, pageSize: 10, total: 0 });
     } finally {
       setLoading(false);
     }
@@ -72,7 +66,7 @@ export default function ErrorsPage() {
       setStats(statsData);
     } catch (err) {
       console.error('Error loading stats:', err);
-      setError('Failed to load statistics');
+      setError(getApiErrorMessage(err));
     }
   };
 
@@ -92,42 +86,27 @@ export default function ErrorsPage() {
       await loadErrors(pagination.current, pagination.pageSize, filters);
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete error');
+      setError(getApiErrorMessage(err));
     }
   };
 
   const handleExport = async (error?: Error) => {
     try {
       if (error) {
-        const data = JSON.stringify(error, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `error-${error.id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadJSON(error, `error-${error.id}`);
       } else {
         const blob = await ErrorsApiService.exportErrors(filters, 'csv');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `errors-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadBlob(blob, `errors-${formatDateForFilename()}.csv`);
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Export failed');
+      setError(getApiErrorMessage(err));
     }
   };
 
   // Handle pagination change
   const handlePageChange = (page: number) => {
+    setPage(page);
     loadErrors(page, pagination.pageSize, filters);
   };
 

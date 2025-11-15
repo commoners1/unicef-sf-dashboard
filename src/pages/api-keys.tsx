@@ -20,7 +20,7 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { Plus, Key, Eye, EyeOff, Trash2, Copy } from 'lucide-react';
-import { ApiKeyApiService } from '@/services/api-key-api';
+import { ApiKeyApiService } from '@/services/api/api-keys/api-key-api';
 import { toast } from 'sonner';
 
 interface ApiKey {

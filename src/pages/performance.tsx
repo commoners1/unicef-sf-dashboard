@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Activity, RefreshCw, AlertTriangle } from 'lucide-react';
-import { PerformanceApiService, type PerformanceMetrics, type PerformanceAlert } from '@/services/performance-api';
+import { PerformanceApiService, type PerformanceMetrics, type PerformanceAlert } from '@/services/api/performance/performance-api';
 
 const METRIC_THRESHOLDS = {
   jobsPerSecond: { warning: 50, critical: 100 },

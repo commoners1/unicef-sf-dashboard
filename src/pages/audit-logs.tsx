@@ -23,7 +23,7 @@ import {
   Hash
 } from 'lucide-react';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
-import { AuditApiService } from '@/services/audit-api';
+import { AuditApiService } from '@/services/api/audit/audit-api';
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);

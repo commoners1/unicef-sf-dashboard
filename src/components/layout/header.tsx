@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { EnvironmentSelector } from '@/components/environment-selector';
-import { useDashboardStore } from '@/stores/dashboard-store';
-import { useAuthStore } from '@/stores/auth-store';
+import { EnvironmentSelector } from '@/components/shared/environment-selector';
+import { useDashboardStore } from '@/features/dashboard';
+import { useAuthStore } from '@/features/auth';
 import { Menu, Bell, User, Moon, Sun, LogOut } from 'lucide-react';
 import {
   DropdownMenu,

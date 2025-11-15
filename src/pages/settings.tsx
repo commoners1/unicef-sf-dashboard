@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings as SettingsIcon, Save, RefreshCw, Shield } from 'lucide-react';
-import { SettingsApiService, type SettingsObject } from '@/services/settings-api';
+import { SettingsApiService, type SettingsObject } from '@/services/api/settings/settings-api';
 
 const DEFAULTS: SettingsObject = {
   general: {

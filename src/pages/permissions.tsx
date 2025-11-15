@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Users, Settings, Plus } from 'lucide-react';
-import { UserApiService, type User, type AvailableRoles } from '@/services/user-api';
+import { UserApiService, type User, type AvailableRoles } from '@/services/api/users/user-api';
 
 export default function PermissionsPage() {
   const [activeTab, setActiveTab] = useState<string>('roles');

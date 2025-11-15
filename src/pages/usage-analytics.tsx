@@ -12,7 +12,7 @@ import {
   Calendar,
   RefreshCw
 } from 'lucide-react';
-import { AnalyticsApiService, type UsageStats, type HourlyUsage, type TopEndpoint, type UserActivity } from '@/services/analytics-api';
+import { AnalyticsApiService, type UsageStats, type HourlyUsage, type TopEndpoint, type UserActivity } from '@/services/api/analytics/analytics-api';
 import { toast } from 'sonner';
 
 export default function UsageAnalyticsPage() {

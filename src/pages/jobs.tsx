@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { QueueApiService, type Job, type JobFilters } from '@/services/queue-api';
+import { QueueApiService, type Job, type JobFilters } from '@/services/api/queue/queue-api';
 import { 
   FileText, 
   Clock, 

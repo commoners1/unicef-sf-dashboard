@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
-import { useDashboardStore } from '@/stores/dashboard-store';
+import { useDashboardStore } from '@/features/dashboard';
 import { cn } from '@/lib/utils';
 
 export function MainLayout() {

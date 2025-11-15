@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { QueueApiService } from '@/services/queue-api';
-import type { QueueHealth, DetailedStats } from '@/services/queue-api';
-import { ExportApiService } from '@/services/export-api';
+import { QueueApiService } from '@/services/api/queue/queue-api';
+import type { QueueHealth, DetailedStats } from '@/services/api/queue/queue-api';
+import { ExportApiService } from '@/services/api/export/export-api';
 import { 
   Play, 
   Pause, 
