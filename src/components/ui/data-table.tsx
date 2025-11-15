@@ -221,13 +221,13 @@ export function DataTable<T extends Record<string, any>>({
     <div className={`space-y-4 ${className}`}>
       {/* Search and Filters */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <span>Search & Filters</span>
               {hasActiveFilters && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs ml-1">
                   {Object.values(filters).filter(v => v !== undefined && v !== '').length + (searchTerm ? 1 : 0)} active
                 </Badge>
               )}
@@ -237,7 +237,7 @@ export function DataTable<T extends Record<string, any>>({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex-1 sm:flex-initial"
+                className="flex-1 sm:flex-initial min-w-[100px]"
               >
                 <Filter className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{showFilters ? 'Hide' : 'Show'} Filters</span>
@@ -248,7 +248,7 @@ export function DataTable<T extends Record<string, any>>({
                   variant="outline"
                   size="sm"
                   onClick={clearFilters}
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial min-w-[100px]"
                 >
                   Clear All
                 </Button>
@@ -256,53 +256,56 @@ export function DataTable<T extends Record<string, any>>({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <div className="space-y-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9 sm:h-10"
               />
             </div>
 
             {/* Filters */}
             {showFilters && getFilterableColumns().length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getFilterableColumns().map((column) => (
-                  <div key={column.key}>
-                    <label className="text-sm font-medium mb-2 block">
-                      {column.title}
-                    </label>
-                    {column.filterType === 'select' && column.filterOptions ? (
-                      <Select
-                        value={filters[column.key] || ''}
-                        onValueChange={(value) => handleFilter(column.key, value || undefined)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={`All ${column.title}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All {column.title}</SelectItem>
-                          {column.filterOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        placeholder={`Filter by ${column.title}`}
-                        value={filters[column.key] || ''}
-                        onChange={(e) => handleFilter(column.key, e.target.value || undefined)}
-                      />
-                    )}
-                  </div>
-                ))}
+              <div className="pt-2 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {getFilterableColumns().map((column) => (
+                    <div key={column.key} className="space-y-2">
+                      <label className="text-xs sm:text-sm font-medium text-foreground block">
+                        {column.title}
+                      </label>
+                      {column.filterType === 'select' && column.filterOptions ? (
+                        <Select
+                          value={filters[column.key] || ''}
+                          onValueChange={(value) => handleFilter(column.key, value || undefined)}
+                        >
+                          <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue placeholder={`All ${column.title}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All {column.title}</SelectItem>
+                            {column.filterOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder={`Filter by ${column.title}`}
+                          value={filters[column.key] || ''}
+                          onChange={(e) => handleFilter(column.key, e.target.value || undefined)}
+                          className="h-9 sm:h-10 text-xs sm:text-sm"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

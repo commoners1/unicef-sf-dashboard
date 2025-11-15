@@ -132,6 +132,7 @@ export default function SalesforceLogsPage() {
       dataIndex: 'action',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Actions', value: '' },
         { label: 'API Call', value: 'API_CALL' },
@@ -143,8 +144,8 @@ export default function SalesforceLogsPage() {
       ],
       render: (_, log) => (
         <div className="flex items-center space-x-2">
-          <Cloud className="h-4 w-4 text-muted-foreground" />
-          <Badge variant="outline" className="font-mono text-xs">
+          <Cloud className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <Badge variant="outline" className="font-mono text-xs break-words">
             {log.action}
           </Badge>
         </div>
@@ -156,11 +157,12 @@ export default function SalesforceLogsPage() {
       dataIndex: 'endpoint',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (_, log) => (
-        <div className="flex items-center space-x-2">
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="font-medium font-mono text-sm">{log.endpoint}</div>
+        <div className="flex items-center space-x-2 min-w-0">
+          <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium font-mono text-sm break-words">{log.endpoint}</div>
             <div className="text-xs text-muted-foreground">{log.method}</div>
           </div>
         </div>
@@ -172,6 +174,7 @@ export default function SalesforceLogsPage() {
       dataIndex: 'user',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Users', value: '' },
         ...Array.from(new Set(logs.map(l => l.user?.name).filter(Boolean))).map(name => ({
@@ -181,14 +184,14 @@ export default function SalesforceLogsPage() {
         { label: 'System', value: 'System' },
       ],
       render: (_, log) => (
-        <div className="flex items-center space-x-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="font-medium">
+        <div className="flex items-center space-x-2 min-w-0">
+          <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium truncate">
               {log.user ? log.user.name : 'System'}
             </div>
             {log.user && (
-              <div className="text-xs text-muted-foreground">{log.user.email}</div>
+              <div className="text-xs text-muted-foreground truncate">{log.user.email}</div>
             )}
           </div>
         </div>
@@ -200,6 +203,7 @@ export default function SalesforceLogsPage() {
       dataIndex: 'statusCode',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All Status', value: '' },
         { label: 'Success (2xx)', value: '2xx' },
@@ -215,7 +219,7 @@ export default function SalesforceLogsPage() {
         };
         
         return (
-          <Badge variant={getStatusVariant(log.statusCode)}>
+          <Badge variant={getStatusVariant(log.statusCode)} className="text-xs">
             {log.statusCode}
           </Badge>
         );
@@ -227,8 +231,9 @@ export default function SalesforceLogsPage() {
       dataIndex: 'ipAddress',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       render: (_, log) => (
-        <div className="font-mono text-sm">{log.ipAddress}</div>
+        <div className="font-mono text-xs sm:text-sm break-all">{log.ipAddress}</div>
       ),
     },
     {
@@ -236,10 +241,11 @@ export default function SalesforceLogsPage() {
       title: 'Duration',
       dataIndex: 'duration',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (_, log) => (
         <div className="flex items-center space-x-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="font-mono text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="font-mono text-xs sm:text-sm">
             {log.duration ? `${log.duration}ms` : '-'}
           </span>
         </div>
@@ -251,13 +257,14 @@ export default function SalesforceLogsPage() {
       dataIndex: 'isDelivered',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All', value: '' },
         { label: 'Delivered', value: 'true' },
         { label: 'Not Delivered', value: 'false' },
       ],
       render: (_, log) => (
-        <Badge variant={log.isDelivered ? 'default' : 'secondary'}>
+        <Badge variant={log.isDelivered ? 'default' : 'secondary'} className="text-xs">
           {log.isDelivered ? 'Yes' : 'No'}
         </Badge>
       ),
@@ -267,10 +274,11 @@ export default function SalesforceLogsPage() {
       title: 'Created',
       dataIndex: 'createdAt',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (_, log) => (
         <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-xs sm:text-sm">
             {new Date(log.createdAt).toLocaleString()}
           </span>
         </div>
@@ -301,26 +309,26 @@ export default function SalesforceLogsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 sm:p-4">
           <div className="flex">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">{error}</div>
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="ml-2 sm:ml-3 min-w-0 flex-1">
+              <h3 className="text-xs sm:text-sm font-medium text-destructive">Error</h3>
+              <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-destructive/90 break-words">{error}</div>
             </div>
           </div>
         </div>
       )}
 
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.today}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.today}</div>
               <p className="text-xs text-muted-foreground">
                 +12% from yesterday
               </p>
@@ -328,11 +336,11 @@ export default function SalesforceLogsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">This Week</CardTitle>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.week}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.week}</div>
               <p className="text-xs text-muted-foreground">
                 +8% from last week
               </p>
@@ -340,11 +348,11 @@ export default function SalesforceLogsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Logs</CardTitle>
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.total.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 All time records
               </p>
@@ -352,11 +360,11 @@ export default function SalesforceLogsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Success Rate</CardTitle>
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats.total > 0 ? ((stats.byStatus.success / stats.total) * 100).toFixed(1) : '0'}%
               </div>
               <p className="text-xs text-muted-foreground">
@@ -400,60 +408,60 @@ export default function SalesforceLogsPage() {
 
       {/* View Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] w-[95vw] sm:w-full">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Eye className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>Salesforce Log Details</span>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               Detailed information for Salesforce log entry
             </DialogDescription>
           </DialogHeader>
           
           {selectedLog && (
-            <ScrollArea className="max-h-[60vh]">
-              <div className="space-y-6">
+            <ScrollArea className="max-h-[70vh] sm:max-h-[60vh]">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                        <Hash className="h-4 w-4" />
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                        <Hash className="h-4 w-4 text-muted-foreground" />
                         <span>Basic Information</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">ID:</span>
-                        <span className="font-mono text-sm">{selectedLog.id}</span>
+                    <CardContent className="space-y-0">
+                      <div className="flex items-start justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">ID:</span>
+                        <span className="font-mono text-xs sm:text-sm break-all text-right flex-1">{selectedLog.id}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Action:</span>
-                        <Badge variant="outline">{selectedLog.action}</Badge>
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Action:</span>
+                        <Badge variant="outline" className="text-xs font-mono">{selectedLog.action}</Badge>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Method:</span>
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Method:</span>
                         <Badge 
                           className={`${
                             selectedLog.method === 'GET' ? 'bg-blue-600' :
                             selectedLog.method === 'POST' ? 'bg-green-600' :
                             selectedLog.method === 'PUT' ? 'bg-yellow-600' :
                             selectedLog.method === 'DELETE' ? 'bg-red-600' : 'bg-gray-600'
-                          } text-white font-bold px-3 py-1 rounded-full`}
+                          } text-white font-semibold px-3 py-1 rounded-md text-xs`}
                         >
                           {selectedLog.method}
                         </Badge>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Status:</span>
+                      <div className="flex items-center justify-between gap-3 py-2.5">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Status:</span>
                         <Badge 
                           className={`${
                             selectedLog.statusCode >= 200 && selectedLog.statusCode < 300 ? 'bg-green-500' :
                             selectedLog.statusCode >= 300 && selectedLog.statusCode < 400 ? 'bg-blue-500' :
                             selectedLog.statusCode >= 400 && selectedLog.statusCode < 500 ? 'bg-yellow-500' :
                             selectedLog.statusCode >= 500 ? 'bg-red-500' : 'bg-gray-500'
-                          } text-white font-bold px-3 py-1 rounded-full`}
+                          } text-white font-semibold px-3 py-1 rounded-md text-xs`}
                         >
                           {selectedLog.statusCode}
                         </Badge>
@@ -462,28 +470,28 @@ export default function SalesforceLogsPage() {
                   </Card>
 
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>Timing & Location</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Created:</span>
-                        <span className="text-sm">{new Date(selectedLog.createdAt).toLocaleString()}</span>
+                    <CardContent className="space-y-0">
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Created:</span>
+                        <span className="text-xs sm:text-sm break-words text-right flex-1">{new Date(selectedLog.createdAt).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Duration:</span>
-                        <span className="text-sm">{selectedLog.duration ? `${selectedLog.duration}ms` : 'N/A'}</span>
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Duration:</span>
+                        <span className="text-xs sm:text-sm font-mono text-right">{selectedLog.duration ? `${selectedLog.duration}ms` : 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">IP Address:</span>
-                        <span className="font-mono text-sm">{selectedLog.ipAddress}</span>
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">IP Address:</span>
+                        <span className="font-mono text-xs sm:text-sm break-all text-right flex-1">{selectedLog.ipAddress}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Delivered:</span>
-                        <Badge variant={selectedLog.isDelivered ? 'default' : 'secondary'}>
+                      <div className="flex items-center justify-between gap-3 py-2.5">
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Delivered:</span>
+                        <Badge variant={selectedLog.isDelivered ? 'default' : 'secondary'} className="text-xs">
                           {selectedLog.isDelivered ? 'Yes' : 'No'}
                         </Badge>
                       </div>
@@ -493,20 +501,23 @@ export default function SalesforceLogsPage() {
 
                 {/* Endpoint Information */}
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                      <Server className="h-4 w-4" />
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                      <Server className="h-4 w-4 text-muted-foreground" />
                       <span>Endpoint Information</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="font-mono text-sm bg-muted p-3 rounded-md">
-                      {selectedLog.endpoint}
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-muted-foreground block mb-2">Endpoint:</span>
+                      <div className="font-mono text-xs sm:text-sm bg-muted p-3 rounded-md break-all">
+                        {selectedLog.endpoint}
+                      </div>
                     </div>
                     {selectedLog.userAgent && (
-                      <div className="mt-3">
-                        <span className="text-sm text-muted-foreground">User Agent:</span>
-                        <div className="text-xs text-muted-foreground mt-1 break-all">
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground block mb-2">User Agent:</span>
+                        <div className="text-xs sm:text-sm text-muted-foreground bg-muted p-3 rounded-md break-all">
                           {selectedLog.userAgent}
                         </div>
                       </div>
@@ -516,76 +527,76 @@ export default function SalesforceLogsPage() {
 
                 {/* User Information */}
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                      <User className="h-4 w-4" />
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
                       <span>User Information</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {selectedLog.user ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Name:</span>
-                          <span className="text-sm">{selectedLog.user.name}</span>
+                      <div className="space-y-0">
+                        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Name:</span>
+                          <span className="text-xs sm:text-sm break-words text-right flex-1">{selectedLog.user.name}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Email:</span>
-                          <span className="text-sm">{selectedLog.user.email}</span>
+                        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Email:</span>
+                          <span className="text-xs sm:text-sm break-all text-right flex-1">{selectedLog.user.email}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">User ID:</span>
-                          <span className="font-mono text-sm">{selectedLog.user.id}</span>
+                        <div className="flex items-center justify-between gap-3 py-2.5">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">User ID:</span>
+                          <span className="font-mono text-xs sm:text-sm break-all text-right flex-1">{selectedLog.user.id}</span>
                         </div>
                       </div>
                     ) : selectedLog.apiKey ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">API Key Name:</span>
-                          <span className="text-sm">{selectedLog.apiKey.name}</span>
+                      <div className="space-y-0">
+                        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">API Key Name:</span>
+                          <span className="text-xs sm:text-sm break-words text-right flex-1">{selectedLog.apiKey.name}</span>
                         </div>
                         {selectedLog.apiKey.description && (
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Description:</span>
-                            <span className="text-sm">{selectedLog.apiKey.description}</span>
+                          <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
+                            <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Description:</span>
+                            <span className="text-xs sm:text-sm break-words text-right flex-1">{selectedLog.apiKey.description}</span>
                           </div>
                         )}
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">API Key ID:</span>
-                          <span className="font-mono text-sm">{selectedLog.apiKeyId}</span>
+                        <div className="flex items-center justify-between gap-3 py-2.5">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">API Key ID:</span>
+                          <span className="font-mono text-xs sm:text-sm break-all text-right flex-1">{selectedLog.apiKeyId}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">System generated log</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground text-center py-4">System generated log</div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Request/Response Data */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                        <Code className="h-4 w-4" />
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                        <Code className="h-4 w-4 text-muted-foreground" />
                         <span>Request Data</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-40">
+                      <pre className="text-xs sm:text-sm bg-muted p-3 sm:p-4 rounded-md overflow-auto max-h-40 sm:max-h-48 font-mono">
                         {selectedLog.requestData ? JSON.stringify(selectedLog.requestData, null, 2) : 'No request data available'}
                       </pre>
                     </CardContent>
                   </Card>
 
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center space-x-2">
-                        <Code className="h-4 w-4" />
+                    <CardHeader className="pb-3 sm:pb-4">
+                      <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                        <Code className="h-4 w-4 text-muted-foreground" />
                         <span>Response Data</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-40">
+                      <pre className="text-xs sm:text-sm bg-muted p-3 sm:p-4 rounded-md overflow-auto max-h-40 sm:max-h-48 font-mono">
                         {selectedLog.responseData ? JSON.stringify(selectedLog.responseData, null, 2) : 'No response data available'}
                       </pre>
                     </CardContent>
