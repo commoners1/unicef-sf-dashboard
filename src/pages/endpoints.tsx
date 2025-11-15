@@ -20,6 +20,7 @@ import {
   Database,
   FileText
 } from 'lucide-react';
+import { ResponsiveTable } from '@/components/shared/responsive-table';
 
 interface Endpoint {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -380,78 +381,108 @@ const getAuthColor = (auth: string) => {
 
 export default function EndpointsPage() {
   const renderEndpointsTable = (endpointsList: Endpoint[]) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Method</TableHead>
-          <TableHead>Path</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>Authentication</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {endpointsList.map((endpoint, index) => (
-          <TableRow key={index}>
-            <TableCell>
-              <Badge className={getMethodColor(endpoint.method)}>
-                {endpoint.method}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <code className="text-sm bg-muted px-2 py-1 rounded">
-                {endpoint.path}
-              </code>
-            </TableCell>
-            <TableCell className="max-w-md">
-              {endpoint.description}
-            </TableCell>
-            <TableCell>
-              <Badge className={getAuthColor(endpoint.auth)}>
-                {endpoint.auth}
-              </Badge>
-            </TableCell>
+    <ResponsiveTable
+      data={endpointsList}
+      getRowKey={(_, index) => `endpoint-${index}`}
+      renderMobileCard={(endpoint) => ({
+        id: (
+          <div className="flex items-center gap-2">
+            <Badge className={getMethodColor(endpoint.method)}>
+              {endpoint.method}
+            </Badge>
+            <code className="text-xs font-mono truncate">{endpoint.path}</code>
+          </div>
+        ),
+        primaryFields: [
+          {
+            label: 'Description',
+            value: <span className="text-xs">{endpoint.description}</span>,
+          },
+          {
+            label: 'Authentication',
+            value: <Badge className={getAuthColor(endpoint.auth)}>{endpoint.auth}</Badge>,
+          },
+        ],
+      })}
+      emptyMessage="No endpoints found"
+    >
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Method</TableHead>
+            <TableHead>Path</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Authentication</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {endpointsList.map((endpoint, index) => (
+            <TableRow key={index}>
+              <TableCell>
+                <Badge className={getMethodColor(endpoint.method)}>
+                  {endpoint.method}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <code className="text-sm bg-muted px-2 py-1 rounded">
+                  {endpoint.path}
+                </code>
+              </TableCell>
+              <TableCell className="max-w-md">
+                {endpoint.description}
+              </TableCell>
+              <TableCell>
+                <Badge className={getAuthColor(endpoint.auth)}>
+                  {endpoint.auth}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </ResponsiveTable>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">API Endpoints</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">API Endpoints</h1>
         <div className="text-sm text-muted-foreground">
           {endpoints.length} total endpoints
         </div>
       </div>
 
       <Tabs defaultValue="authentication" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="authentication" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Auth
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="authentication" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span>Auth</span>
           </TabsTrigger>
-          <TabsTrigger value="management" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Management
+          <TabsTrigger value="management" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Management</span>
+            <span className="sm:hidden">Mgmt</span>
           </TabsTrigger>
-          <TabsTrigger value="integration" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Integration
+          <TabsTrigger value="integration" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Integration</span>
+            <span className="sm:hidden">Integ</span>
           </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            System
+          <TabsTrigger value="system" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5">
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span>System</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="authentication" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="h-5 w-5 mr-2" />
-                Authentication & User Management
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Authentication & User Management</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'Authentication' || ep.category === 'User Management').length} endpoints
                 </Badge>
               </CardTitle>
@@ -465,10 +496,12 @@ export default function EndpointsPage() {
         <TabsContent value="management" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Key className="h-5 w-5 mr-2" />
-                API Key Management
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <Key className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">API Key Management</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'API Key Management').length} endpoints
                 </Badge>
               </CardTitle>
@@ -480,10 +513,12 @@ export default function EndpointsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="h-5 w-5 mr-2" />
-                Audit & Logs
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Audit & Logs</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'Audit & Logs').length} endpoints
                 </Badge>
               </CardTitle>
@@ -497,10 +532,12 @@ export default function EndpointsPage() {
         <TabsContent value="integration" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Database className="h-5 w-5 mr-2" />
-                Salesforce Integration
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Salesforce Integration</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'Salesforce Integration').length} endpoints
                 </Badge>
               </CardTitle>
@@ -512,10 +549,12 @@ export default function EndpointsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Workflow className="h-5 w-5 mr-2" />
-                Queue Management
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <Workflow className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Queue Management</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'Queue Management').length} endpoints
                 </Badge>
               </CardTitle>
@@ -529,10 +568,12 @@ export default function EndpointsPage() {
         <TabsContent value="system" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Heart className="h-5 w-5 mr-2" />
-                System & Health
-                <Badge variant="outline" className="ml-2">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">System & Health</span>
+                </div>
+                <Badge variant="outline" className="text-xs sm:text-sm sm:ml-2">
                   {endpoints.filter(ep => ep.category === 'System').length} endpoints
                 </Badge>
               </CardTitle>
@@ -544,34 +585,55 @@ export default function EndpointsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Activity className="h-5 w-5 mr-2" />
-                API Usage Guidelines
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-base sm:text-lg">API Usage Guidelines</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2">Authentication Types</h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li><Badge className="bg-gray-100 text-gray-800 mr-2">None</Badge> No authentication required</li>
-                    <li><Badge className="bg-purple-100 text-purple-800 mr-2">JWT</Badge> Requires JWT token in Authorization header</li>
-                    <li><Badge className="bg-orange-100 text-orange-800 mr-2">API Key</Badge> Requires API key in X-API-Key header</li>
+                  <h4 className="font-semibold mb-2 text-sm sm:text-base">Authentication Types</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-gray-100 text-gray-800 flex-shrink-0">None</Badge>
+                      <span>No authentication required</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-purple-100 text-purple-800 flex-shrink-0">JWT</Badge>
+                      <span>Requires JWT token in Authorization header</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-orange-100 text-orange-800 flex-shrink-0">API Key</Badge>
+                      <span>Requires API key in X-API-Key header</span>
+                    </li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">HTTP Methods</h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li><Badge className="bg-green-100 text-green-800 mr-2">GET</Badge> Retrieve data</li>
-                    <li><Badge className="bg-blue-100 text-blue-800 mr-2">POST</Badge> Create or process data</li>
-                    <li><Badge className="bg-yellow-100 text-yellow-800 mr-2">PUT</Badge> Update data</li>
-                    <li><Badge className="bg-red-100 text-red-800 mr-2">DELETE</Badge> Remove data</li>
+                  <h4 className="font-semibold mb-2 text-sm sm:text-base">HTTP Methods</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-green-100 text-green-800 flex-shrink-0">GET</Badge>
+                      <span>Retrieve data</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-blue-100 text-blue-800 flex-shrink-0">POST</Badge>
+                      <span>Create or process data</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-yellow-100 text-yellow-800 flex-shrink-0">PUT</Badge>
+                      <span>Update data</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="bg-red-100 text-red-800 flex-shrink-0">DELETE</Badge>
+                      <span>Remove data</span>
+                    </li>
                   </ul>
                 </div>
               </div>
               <div className="pt-4 border-t">
-                <h4 className="font-semibold mb-2">Base URL</h4>
-                <code className="text-sm bg-muted px-2 py-1 rounded">
+                <h4 className="font-semibold mb-2 text-sm sm:text-base">Base URL</h4>
+                <code className="text-xs sm:text-sm bg-muted px-2 py-1 rounded break-all">
                   {window.location.origin.replace('3000', '3001')}
                 </code>
               </div>

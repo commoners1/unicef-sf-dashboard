@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageLoading } from '@/components/ui/loading';
 import { MetricsCard, useDashboardStore } from '@/features/dashboard';
 import { AuditApiService } from '@/services/api/audit/audit-api';
 import { QueueApiService } from '@/services/api/queue/queue-api';
@@ -160,14 +161,12 @@ export default function OverviewPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor your Salesforce Middleware API performance and health
           </p>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <PageLoading text="Loading overview" subtitle="Fetching system metrics and performance data" />
       </div>
     );
   }
@@ -194,36 +193,44 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor your Salesforce Middleware API performance and health
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
+            size="sm"
             onClick={loadData}
             disabled={isLoading}
+            className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => handleExportOverview('csv')}
+            className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => handleExportOverview('json')}
+            className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export JSON
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export JSON</span>
+            <span className="sm:hidden">JSON</span>
           </Button>
         </div>
       </div>

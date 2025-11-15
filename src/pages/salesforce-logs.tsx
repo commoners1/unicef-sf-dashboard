@@ -15,17 +15,18 @@ import {
   Clock,
   User,
   Globe,
-  Monitor,
   Calendar,
   Eye,
   Code,
   Server,
-  Hash
+  Hash,
+  Cloud
 } from 'lucide-react';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
-import { AuditApiService } from '@/services/api/audit/audit-api';
+import { SalesforceLogsApiService } from '@/services/api/salesforce-logs/salesforce-logs-api';
+import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
 
-export default function AuditLogsPage() {
+export default function SalesforceLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,11 +48,11 @@ export default function AuditLogsPage() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const statsData = await AuditApiService.getAuditStats();
+      const statsData = await SalesforceLogsApiService.getSalesforceStats();
       setStats(statsData);
     } catch (err) {
       console.error('Error loading stats:', err);
-      setError('Failed to load statistics');
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ export default function AuditLogsPage() {
       setLoading(true);
       setError(null);
       
-      const response = await AuditApiService.getAuditLogs({
+      const response = await SalesforceLogsApiService.getSalesforceLogs({
         page,
         limit,
         ...newFilters,
@@ -76,7 +77,7 @@ export default function AuditLogsPage() {
       });
     } catch (err) {
       console.error('Error loading logs:', err);
-      setError('Failed to load audit logs');
+      setError(getApiErrorMessage(err));
       setLogs([]);
       setPagination({
         current: 1,
@@ -100,35 +101,18 @@ export default function AuditLogsPage() {
   const handleExport = async (log?: AuditLog) => {
     try {
       if (log) {
-        const data = JSON.stringify(log, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-log-${log.id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadJSON(log, `salesforce-log-${log.id}`);
       } else {
-        const blob = await AuditApiService.exportAuditLogs({
+        const blob = await SalesforceLogsApiService.exportSalesforceLogs({
           format: 'csv',
           filters: filters,
           fields: ['id', 'action', 'method', 'endpoint', 'statusCode', 'user', 'ipAddress', 'createdAt'],
         });
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadBlob(blob, `salesforce-logs-${formatDateForFilename()}.csv`);
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Export failed');
+      setError(getApiErrorMessage(err));
     }
   };
 
@@ -141,7 +125,6 @@ export default function AuditLogsPage() {
     loadLogs(1, pagination.pageSize, newFilters);
   };
 
-
   const columns: Column<AuditLog>[] = [
     {
       key: 'action',
@@ -149,7 +132,6 @@ export default function AuditLogsPage() {
       dataIndex: 'action',
       sortable: true,
       filterable: true,
-      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Actions', value: '' },
         { label: 'API Call', value: 'API_CALL' },
@@ -161,7 +143,7 @@ export default function AuditLogsPage() {
       ],
       render: (_, log) => (
         <div className="flex items-center space-x-2">
-          <Monitor className="h-4 w-4 text-muted-foreground" />
+          <Cloud className="h-4 w-4 text-muted-foreground" />
           <Badge variant="outline" className="font-mono text-xs">
             {log.action}
           </Badge>
@@ -174,7 +156,6 @@ export default function AuditLogsPage() {
       dataIndex: 'endpoint',
       sortable: true,
       filterable: true,
-      mobilePriority: 'primary',
       render: (_, log) => (
         <div className="flex items-center space-x-2">
           <Globe className="h-4 w-4 text-muted-foreground" />
@@ -191,7 +172,6 @@ export default function AuditLogsPage() {
       dataIndex: 'user',
       sortable: true,
       filterable: true,
-      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Users', value: '' },
         ...Array.from(new Set(logs.map(l => l.user?.name).filter(Boolean))).map(name => ({
@@ -220,7 +200,6 @@ export default function AuditLogsPage() {
       dataIndex: 'statusCode',
       sortable: true,
       filterable: true,
-      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All Status', value: '' },
         { label: 'Success (2xx)', value: '2xx' },
@@ -303,9 +282,9 @@ export default function AuditLogsPage() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Audit Logs</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Salesforce Logs</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Monitor and analyze system activity and API usage
+            Monitor and analyze Salesforce integration activity and API usage
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -378,7 +357,7 @@ export default function AuditLogsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {((stats.byStatus.success / stats.total) * 100).toFixed(1)}%
+                {stats.total > 0 ? ((stats.byStatus.success / stats.total) * 100).toFixed(1) : '0'}%
               </div>
               <p className="text-xs text-muted-foreground">
                 {stats.byStatus.error} errors
@@ -416,7 +395,7 @@ export default function AuditLogsPage() {
           export: handleExport,
         }}
         rowKey="id"
-        emptyMessage="No audit logs found"
+        emptyMessage="No Salesforce logs found"
       />
 
       {/* View Modal */}
@@ -425,10 +404,10 @@ export default function AuditLogsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Eye className="h-5 w-5" />
-              <span>Audit Log Details</span>
+              <span>Salesforce Log Details</span>
             </DialogTitle>
             <DialogDescription>
-              Detailed information for audit log entry
+              Detailed information for Salesforce log entry
             </DialogDescription>
           </DialogHeader>
           
@@ -582,7 +561,7 @@ export default function AuditLogsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Request/Response Data - Always show both sections */}
+                {/* Request/Response Data */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
                     <CardHeader className="pb-3">
@@ -620,3 +599,4 @@ export default function AuditLogsPage() {
     </div>
   );
 }
+

@@ -129,6 +129,7 @@ export default function ErrorsPage() {
       dataIndex: 'type',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       filterOptions: [
         { label: 'All Levels', value: '' },
         { label: 'Critical', value: 'critical' },
@@ -160,6 +161,7 @@ export default function ErrorsPage() {
       dataIndex: 'message',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (error) => (
         <div className="max-w-md">
           <div className="font-medium truncate">{error.message}</div>
@@ -175,6 +177,7 @@ export default function ErrorsPage() {
       dataIndex: 'source',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (error) => (
         <div className="flex items-center space-x-2">
           <Code className="h-4 w-4 text-muted-foreground" />
@@ -187,6 +190,7 @@ export default function ErrorsPage() {
       title: 'Occurrences',
       dataIndex: 'occurrences',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (error) => (
         <div className="text-center">
           <div className="font-bold">{error.occurrences}</div>
@@ -202,6 +206,7 @@ export default function ErrorsPage() {
       dataIndex: 'resolved',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
       filterOptions: [
         { label: 'All', value: '' },
         { label: 'Resolved', value: 'true' },
@@ -218,6 +223,7 @@ export default function ErrorsPage() {
       title: 'Last Seen',
       dataIndex: 'lastSeen',
       sortable: true,
+      mobilePriority: 'secondary',
       render: (error) => (
         <div className="flex items-center space-x-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
@@ -230,22 +236,23 @@ export default function ErrorsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Error Tracking</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Error Tracking</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and manage application errors and exceptions
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleExport()}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
+          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">Export</span>
           </Button>
         </div>
       </div>

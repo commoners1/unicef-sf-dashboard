@@ -38,10 +38,21 @@ export function createApiClient(): AxiosInstance {
       }
 
       // Add CSRF token for state-changing operations
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase() || '')) {
-        const csrfToken = CSRFProtection.getToken();
-        if (config.headers) {
-          config.headers['X-CSRF-Token'] = csrfToken;
+      // Check if current environment supports CSRF tokens
+      const currentEnv = currentStore.currentEnvironment;
+      const isStateChanging = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase() || '');
+      const enableCSRF = currentEnv?.enableCSRF !== false; // Default to true unless explicitly disabled
+      const shouldAddCSRF = enableCSRF && isStateChanging;
+      
+      if (shouldAddCSRF) {
+        try {
+          const csrfToken = CSRFProtection.getToken();
+          if (config.headers) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+          }
+        } catch (error) {
+          // If CSRF token generation fails, log but don't block the request
+          SecurityLogger.log('CSRF_TOKEN_GENERATION_FAILED', { error }, 'low');
         }
       }
 
@@ -68,13 +79,10 @@ export function createApiClient(): AxiosInstance {
       // Log security-relevant errors
       if (error.response?.status === 401) {
         SecurityLogger.logAuthEvent('failed_login', { reason: 'unauthorized' });
-        // Handle unauthorized - redirect to login
+        // Handle unauthorized - clear tokens
+        // AuthGuard will handle the redirect using React Router (respects basename)
         localStorage.removeItem('jwt_token');
         localStorage.removeItem('user_profile');
-        // Only redirect if not already on login page
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
       } else if (error.response?.status === 403) {
         SecurityLogger.logSuspiciousActivity('FORBIDDEN_ACCESS_ATTEMPT', {
           url: error.config?.url,
@@ -84,6 +92,13 @@ export function createApiClient(): AxiosInstance {
         SecurityLogger.logSuspiciousActivity('RATE_LIMIT_EXCEEDED_SERVER', {
           url: error.config?.url,
         });
+      } else if (!error.response && error.message?.includes('CORS')) {
+        // CORS error - likely due to missing headers in backend CORS config
+        SecurityLogger.log('CORS_ERROR', {
+          url: error.config?.url,
+          method: error.config?.method,
+          message: 'CORS policy blocked the request. Check backend CORS configuration.',
+        }, 'high');
       }
 
       return Promise.reject(error);

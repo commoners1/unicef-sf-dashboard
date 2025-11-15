@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageLoading } from '@/components/ui/loading';
 import { Settings as SettingsIcon, Save, RefreshCw, Shield } from 'lucide-react';
 import { SettingsApiService, type SettingsObject } from '@/services/api/settings/settings-api';
 
@@ -75,59 +77,40 @@ export default function SettingsPage() {
     { id: 'security', label: 'Security', icon: Shield }
   ];
 
-  if (isLoading) return <div className="text-center m-12 text-muted-foreground">Loading settings...</div>;
-  if (error) return <div className="text-center m-12 text-destructive">{error}</div>;
+  if (isLoading) return <PageLoading text="Loading settings" subtitle="Please wait while we fetch your configuration" />;
+  if (error) return <div className="text-center m-12 text-destructive text-sm sm:text-base">{error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">Configure system settings and preferences</p>
-        </div>
-        <div className="flex space-x-2">
-          {hasChanges && (
-            <Button variant="outline" onClick={handleReset}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reset
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={!hasChanges}>
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        </div>
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Configure system settings and preferences</p>
       </div>
-      <div className="grid gap-6 lg:grid-cols-4">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Categories</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <nav className="space-y-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-muted transition-colors ${activeTab === tab.id ? 'bg-muted border-r-2 border-primary' : ''}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </CardContent>
-        </Card>
-        <div className="lg:col-span-3 space-y-6">
-          {tabs.map(tab => activeTab === tab.id && (
-            <Card key={tab.id}>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id} 
+                className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5"
+              >
+                <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {tabs.map(tab => (
+          <TabsContent key={tab.id} value={tab.id} className="space-y-4 sm:space-y-6">
+            <Card>
               <CardHeader>
-                <CardTitle>{tab.label} Settings</CardTitle>
+                <CardTitle className="text-base sm:text-lg">{tab.label} Settings</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6">
                 {Object.entries(settings[tab.id] || {}).map(([key, value]) => {
                   let inputType: 'text' | 'number' | 'checkbox' | 'textarea' | 'select' = 'text';
                   if (typeof value === 'boolean') inputType = 'checkbox';
@@ -136,12 +119,12 @@ export default function SettingsPage() {
                   else if (/theme|frequency|timezone|language/.test(key)) inputType = 'select';
                   return (
                     <div key={key} className="space-y-2">
-                      <label className="text-sm font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</label>
+                      <label className="text-xs sm:text-sm font-medium capitalize block">{key.replace(/([A-Z])/g, ' $1')}</label>
                       {inputType === 'text' && (
                         <input
                           type="text"
                           value={value}
-                          className="w-full px-3 py-2 border rounded-md"
+                          className="w-full px-3 py-2 text-sm sm:text-base border rounded-md bg-background"
                           onChange={e => updateSetting(tab.id, key, e.target.value)}
                         />
                       )}
@@ -149,21 +132,26 @@ export default function SettingsPage() {
                         <input
                           type="number"
                           value={value}
-                          className="w-full px-3 py-2 border rounded-md"
+                          className="w-full px-3 py-2 text-sm sm:text-base border rounded-md bg-background"
                           onChange={e => updateSetting(tab.id, key, Number(e.target.value))}
                         />
                       )}
                       {inputType === 'checkbox' && (
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={!!value}
-                          onChange={e => updateSetting(tab.id, key, e.target.checked)}
-                        />
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 sm:w-5 sm:h-5 rounded"
+                            checked={!!value}
+                            onChange={e => updateSetting(tab.id, key, e.target.checked)}
+                          />
+                          <span className="text-xs sm:text-sm text-muted-foreground">
+                            {value ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
                       )}
                       {inputType === 'textarea' && (
                         <textarea
-                          className="w-full px-3 py-2 border rounded-md"
+                          className="w-full px-3 py-2 text-sm sm:text-base border rounded-md bg-background resize-y"
                           value={value.join('\n')}
                           onChange={e => updateSetting(tab.id, key, e.target.value.split('\n'))}
                           rows={3}
@@ -179,7 +167,7 @@ export default function SettingsPage() {
                         })();
                         return (
                           <select
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 text-sm sm:text-base border rounded-md bg-background"
                             value={value}
                             onChange={e => updateSetting(tab.id, key, e.target.value)}
                           >
@@ -194,8 +182,23 @@ export default function SettingsPage() {
                 })}
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end pt-2">
+        {hasChanges && (
+          <Button variant="outline" size="sm" onClick={handleReset} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Reset</span>
+            <span className="sm:hidden">Reset</span>
+          </Button>
+        )}
+        <Button size="sm" onClick={handleSave} disabled={!hasChanges} className="flex-1 sm:flex-initial min-w-[100px]">
+          <Save className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Save Changes</span>
+          <span className="sm:hidden">Save</span>
+        </Button>
       </div>
     </div>
   );

@@ -30,13 +30,13 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   useEffect(() => {
     if (!isChecking && !isLoading) {
       if (!isAuthenticated) {
-        navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
 
       // Check role-based access
       if (requiredRole && user?.role !== requiredRole) {
-        navigate('/unauthorized');
+        navigate('/unauthorized', { replace: true });
         return;
       }
     }

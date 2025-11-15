@@ -147,6 +147,7 @@ export default function UsersPage() {
       dataIndex: 'name',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
       render: (_, user) => (
         <div className="flex items-center space-x-3">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -165,8 +166,10 @@ export default function UsersPage() {
       dataIndex: 'company',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
+      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end space-x-2">
           <Building className="h-4 w-4 text-muted-foreground" />
           <span>{user.company || 'N/A'}</span>
         </div>
@@ -178,6 +181,8 @@ export default function UsersPage() {
       dataIndex: 'role',
       sortable: true,
       filterable: true,
+      mobilePriority: 'primary',
+      align: 'right',
       filterOptions: [
         { label: 'All Roles', value: '' },
         { label: 'Super Admin', value: 'SUPER_ADMIN' },
@@ -195,7 +200,7 @@ export default function UsersPage() {
         };
 
         return (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-end space-x-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <Badge variant={getRoleVariant(user.role)}>
               {ROLE_LABELS[user.role] || (user.role ? user.role[0].toUpperCase() + user.role.slice(1).toLowerCase() : 'User')}
@@ -209,8 +214,10 @@ export default function UsersPage() {
       title: 'API Keys',
       dataIndex: 'apiKeyCount',
       sortable: true,
+      mobilePriority: 'secondary',
+      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end space-x-2">
           <Key className="h-4 w-4 text-muted-foreground" />
           <span className="font-mono">{user.apiKeyCount || 0}</span>
         </div>
@@ -222,15 +229,19 @@ export default function UsersPage() {
       dataIndex: 'isActive',
       sortable: true,
       filterable: true,
+      mobilePriority: 'secondary',
+      align: 'right',
       filterOptions: [
         { label: 'All', value: '' },
         { label: 'Active', value: 'true' },
         { label: 'Inactive', value: 'false' },
       ],
       render: (_, user) => (
-        <Badge variant={user.isActive ? 'default' : 'secondary'}>
-          {user.isActive ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge variant={user.isActive ? 'default' : 'secondary'}>
+            {user.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
       ),
     },
     {
@@ -238,8 +249,10 @@ export default function UsersPage() {
       title: 'Last Login',
       dataIndex: 'lastLogin',
       sortable: true,
+      mobilePriority: 'secondary',
+      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end space-x-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
             {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
@@ -252,8 +265,10 @@ export default function UsersPage() {
       title: 'Created',
       dataIndex: 'createdAt',
       sortable: true,
+      mobilePriority: 'secondary',
+      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end space-x-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
             {new Date(user.createdAt).toLocaleDateString()}
@@ -264,26 +279,28 @@ export default function UsersPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage users, roles, and API key access
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleExport()}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
+          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">Export</span>
           </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
+          <Button size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
+            <Plus className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Add User</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -300,7 +317,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>

@@ -41,18 +41,18 @@ export function EnvironmentSelector() {
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className="h-9 min-w-[180px] justify-between px-3 py-2 hover:bg-accent/50 transition-colors"
+          className="h-9 min-w-[140px] md:min-w-[180px] justify-between px-2 md:px-3 py-2 hover:bg-accent/50 transition-colors text-xs md:text-sm"
         >
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 md:space-x-3">
+            <div className="flex items-center space-x-1 md:space-x-2">
               {getEnvironmentIcon(currentEnvironment.isProduction)}
-              <span className="text-sm font-medium text-foreground">
+              <span className="font-medium text-foreground truncate max-w-[80px] md:max-w-none">
                 {getEnvironmentName(currentEnvironment.name)}
               </span>
             </div>
             {getEnvironmentBadge(currentEnvironment.isProduction)}
           </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[200px] p-1">

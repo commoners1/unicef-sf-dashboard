@@ -5,6 +5,7 @@ export interface EnvironmentConfig {
   apiUrl: string;
   wsUrl: string;
   isProduction: boolean;
+  enableCSRF?: boolean; // Whether this environment supports CSRF tokens
   features: {
     realTimeLogs: boolean;
     advancedAnalytics: boolean;
@@ -162,6 +163,8 @@ export interface DashboardStore {
   // UI State
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  sidebarOpen: boolean; // Mobile sidebar open state
+  setSidebarOpen: (open: boolean) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 }

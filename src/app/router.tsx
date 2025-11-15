@@ -18,6 +18,7 @@ const JobsPage = lazy(() => import('@/pages/jobs'));
 const MonitoringPage = lazy(() => import('@/pages/monitoring'));
 const LogsPage = lazy(() => import('@/pages/logs'));
 const AuditLogsPage = lazy(() => import('@/pages/audit-logs'));
+const SalesforceLogsPage = lazy(() => import('@/pages/salesforce-logs'));
 const CronJobsPage = lazy(() => import('@/pages/cron-jobs'));
 const ErrorsPage = lazy(() => import('@/pages/errors'));
 const PerformancePage = lazy(() => import('@/pages/performance'));
@@ -75,10 +76,11 @@ function createRoute({ path, component, requiresAdmin }: RouteConfig) {
 
 /**
  * Public routes configuration
+ * Note: These paths are relative to the basename (/dashboard)
  */
 const publicRoutes: RouteConfig[] = [
-  { path: '/login', component: LoginPage },
-  { path: '/unauthorized', component: UnauthorizedPage },
+  { path: 'login', component: LoginPage },
+  { path: 'unauthorized', component: UnauthorizedPage },
 ];
 
 /**
@@ -97,6 +99,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: 'monitoring', component: MonitoringPage },
   { path: 'logs', component: LogsPage },
   { path: 'audit-logs', component: AuditLogsPage },
+  { path: 'salesforce-logs', component: SalesforceLogsPage },
   { path: 'cron-jobs', component: CronJobsPage },
   { path: 'performance', component: PerformancePage },
 ];

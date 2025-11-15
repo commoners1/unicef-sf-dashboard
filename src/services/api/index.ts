@@ -14,6 +14,9 @@ export type { LoginCredentials, LoginResponse, User as AuthUser } from './auth/a
 // Audit
 export * from './audit/audit-api';
 
+// Salesforce Logs
+export * from './salesforce-logs/salesforce-logs-api';
+
 // Monitoring (export with aliases to avoid conflicts)
 export { MonitoringApiService } from './monitoring/monitoring-api';
 export type {

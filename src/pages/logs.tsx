@@ -92,54 +92,56 @@ export default function LogsPage() {
   const warningCount = logs.filter(log => log.statusCode >= 300 && log.statusCode < 400).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Live Logs</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Live Logs</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Monitor real-time system logs and events
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base sm:text-lg">
               <span>Live Log Stream</span>
-              <Badge variant={isConnected ? 'default' : 'destructive'}>
+              <Badge variant={isConnected ? 'default' : 'destructive'} className="text-xs">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </Badge>
               {isLoading && (
-                <Badge variant="outline">
+                <Badge variant="outline" className="text-xs">
                   <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
                   Loading...
                 </Badge>
               )}
             </CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="flex-1 sm:flex-initial min-w-[100px]">
+                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
+                <span className="sm:hidden">Export</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex-1 w-full sm:w-auto">
                 <Input
-                  placeholder="Search logs..."
+                  placeholder="Search log"
                   value={filter.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
+                  className="w-full"
                 />
               </div>
               <Select value={filter.method} onValueChange={(value) => handleFilterChange('method', value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue placeholder="All Methods" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
@@ -150,8 +152,8 @@ export default function LogsPage() {
                 </SelectContent>
               </Select>
               <Select value={filter.statusCode} onValueChange={(value) => handleFilterChange('statusCode', value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
@@ -177,11 +179,11 @@ export default function LogsPage() {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50"
+                    className="flex flex-col sm:flex-row items-start sm:items-start gap-3 p-3 border rounded-lg hover:bg-muted/50"
                   >
-                    <div className="flex flex-col space-y-1">
+                    <div className="flex items-center gap-2 sm:flex-col sm:items-start sm:space-y-1 flex-shrink-0">
                       <div 
-                        className={`text-xs font-bold px-3 py-1 rounded-full w-fit text-white ${
+                        className={`text-xs font-bold px-2 sm:px-3 py-1 rounded-full w-fit text-white ${
                           log.statusCode >= 200 && log.statusCode < 300 
                             ? 'bg-blue-600' 
                             : log.statusCode >= 300 && log.statusCode < 400
@@ -193,46 +195,50 @@ export default function LogsPage() {
                       >
                         {log.statusCode}
                       </div>
-                      <div className="text-xs font-bold px-4 py-1.5 rounded-full w-fit bg-white border border-gray-300 text-gray-800">
+                      <div className="text-xs font-bold px-2 sm:px-4 py-1 sm:py-1.5 rounded-full w-fit bg-white border border-gray-300 text-gray-800">
                         {log.method}
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>{new Date(log.createdAt).toLocaleString()}</span>
+                    <div className="flex-1 min-w-0 w-full sm:w-auto">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</span>
+                        </div>
                         {log.user && (
-                          <>
-                            <span>•</span>
-                            <User className="h-3 w-3" />
-                            <span>{log.user.name || log.user.email}</span>
-                          </>
+                          <div className="flex items-center gap-1">
+                            <span className="hidden sm:inline">•</span>
+                            <User className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-none">{log.user.name || log.user.email}</span>
+                          </div>
                         )}
                         {log.apiKey && (
-                          <>
-                            <span>•</span>
-                            <Key className="h-3 w-3" />
-                            <span>{log.apiKey.name}</span>
-                          </>
+                          <div className="flex items-center gap-1">
+                            <span className="hidden sm:inline">•</span>
+                            <Key className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate max-w-[100px] sm:max-w-none">{log.apiKey.name}</span>
+                          </div>
                         )}
-                        <span>•</span>
-                        <span>{log.ipAddress}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="hidden sm:inline">•</span>
+                          <span className="font-mono text-xs">{log.ipAddress}</span>
+                        </div>
                         {log.duration && (
-                          <>
-                            <span>•</span>
+                          <div className="flex items-center gap-1">
+                            <span className="hidden sm:inline">•</span>
                             <span>{log.duration}ms</span>
-                          </>
+                          </div>
                         )}
                       </div>
-                      <p className="mt-1 text-sm font-medium">{log.action}</p>
-                      <p className="text-xs text-muted-foreground">{log.endpoint}</p>
+                      <p className="text-sm font-medium break-words">{log.action}</p>
+                      <p className="text-xs text-muted-foreground break-all">{log.endpoint}</p>
                       {log.userAgent && (
-                        <p className="text-xs text-muted-foreground truncate max-w-md">
+                        <p className="text-xs text-muted-foreground truncate max-w-full sm:max-w-md">
                           {log.userAgent}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center sm:items-start flex-shrink-0 self-start sm:self-center">
                       {log.isDelivered ? (
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       ) : (
@@ -251,20 +257,21 @@ export default function LogsPage() {
 
             {/* Pagination */}
             {pagination.pages > 1 && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+                <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   Showing {((pagination.current - 1) * pagination.pageSize) + 1} to {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total} logs
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => loadLogs(pagination.current - 1, pagination.pageSize)}
                     disabled={pagination.current <= 1 || isLoading}
+                    className="text-xs sm:text-sm"
                   >
                     Previous
                   </Button>
-                  <span className="text-sm">
+                  <span className="text-xs sm:text-sm whitespace-nowrap">
                     Page {pagination.current} of {pagination.pages}
                   </span>
                   <Button
@@ -272,6 +279,7 @@ export default function LogsPage() {
                     size="sm"
                     onClick={() => loadLogs(pagination.current + 1, pagination.pageSize)}
                     disabled={pagination.current >= pagination.pages || isLoading}
+                    className="text-xs sm:text-sm"
                   >
                     Next
                   </Button>
@@ -283,14 +291,14 @@ export default function LogsPage() {
       </Card>
 
       {/* Log Statistics */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Logs</CardTitle>
             <Monitor className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
+            <div className="text-xl sm:text-2xl font-bold">{pagination.total}</div>
             <p className="text-xs text-muted-foreground">
               All time
             </p>
@@ -299,13 +307,13 @@ export default function LogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success</CardTitle>
-            <div className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-800 border border-green-200">
+            <CardTitle className="text-xs sm:text-sm font-medium">Success</CardTitle>
+            <div className="text-xs font-bold px-2 sm:px-3 py-1 rounded-full bg-green-100 text-green-800 border border-green-200">
               SUCCESS
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {successCount}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -316,13 +324,13 @@ export default function LogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Warnings</CardTitle>
-            <div className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+            <CardTitle className="text-xs sm:text-sm font-medium">Warnings</CardTitle>
+            <div className="text-xs font-bold px-2 sm:px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
               WARN
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-xl sm:text-2xl font-bold text-yellow-600">
               {warningCount}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -333,13 +341,13 @@ export default function LogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Errors</CardTitle>
-            <div className="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-800 border border-red-200">
+            <CardTitle className="text-xs sm:text-sm font-medium">Errors</CardTitle>
+            <div className="text-xs font-bold px-2 sm:px-3 py-1 rounded-full bg-red-100 text-red-800 border border-red-200">
               ERROR
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-xl sm:text-2xl font-bold text-red-600">
               {errorCount}
             </div>
             <p className="text-xs text-muted-foreground">

@@ -54,87 +54,86 @@ export default function PerformancePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Performance Monitoring</h1>
-          <p className="text-muted-foreground">Real-time system performance metrics and analytics</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Performance Monitoring</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Real-time system performance metrics and analytics</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" style={{ display: isLoading ? 'inline' : 'none' }} />
-            {!isLoading && <RefreshCw className="mr-2 h-4 w-4" />}
-            Refresh
+        <div className="flex w-full sm:w-auto">
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="sm" className="w-full sm:w-auto">
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </Button>
         </div>
       </div>
       {error && (
-        <Card><CardContent className="p-6 text-center text-red-600">{error}</CardContent></Card>
+        <Card><CardContent className="p-4 sm:p-6 text-center text-red-600 text-sm sm:text-base">{error}</CardContent></Card>
       )}
       {/* Metrics Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Throughput</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Throughput</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? metrics.jobsPerSecond.toFixed(2) : '--'} jobs/s</div>
-            {metrics && getStatusBadge('jobsPerSecond', metrics.jobsPerSecond)}
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? metrics.jobsPerSecond.toFixed(2) : '--'} jobs/s</div>
+            {metrics && <div className="mt-2">{getStatusBadge('jobsPerSecond', metrics.jobsPerSecond)}</div>}
             <div className="text-xs text-muted-foreground mt-1">Jobs completed per second</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Error Rate</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? `${(metrics.errorRate*100).toFixed(2)}%` : '--'}</div>
-            {metrics && getStatusBadge('errorRate', metrics.errorRate)}
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? `${(metrics.errorRate*100).toFixed(2)}%` : '--'}</div>
+            {metrics && <div className="mt-2">{getStatusBadge('errorRate', metrics.errorRate)}</div>}
             <div className="text-xs text-muted-foreground mt-1">Share of failed jobs/requests</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Processing Time</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Avg Processing Time</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? `${metrics.avgProcessingTime} ms` : '--'}</div>
-            {metrics && getStatusBadge('avgProcessingTime', metrics.avgProcessingTime)}
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? `${metrics.avgProcessingTime} ms` : '--'}</div>
+            {metrics && <div className="mt-2">{getStatusBadge('avgProcessingTime', metrics.avgProcessingTime)}</div>}
             <div className="text-xs text-muted-foreground mt-1">Time spent on average per job/request</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Queue Depth</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Queue Depth</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? metrics.queueDepth : '--'}</div>
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? metrics.queueDepth : '--'}</div>
             <div className="text-xs text-muted-foreground mt-1">Jobs currently waiting across all queues</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">CPU Usage</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? (metrics.cpuUsage*100).toFixed(1)+'%' : '--'}</div>
-            {metrics && getStatusBadge('cpuUsage', metrics.cpuUsage)}
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? (metrics.cpuUsage*100).toFixed(1)+'%' : '--'}</div>
+            {metrics && <div className="mt-2">{getStatusBadge('cpuUsage', metrics.cpuUsage)}</div>}
             <div className="text-xs text-muted-foreground mt-1">Current Node.js process CPU utilization</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Memory Usage</CardTitle>
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics ? (metrics.memoryUsage*100).toFixed(1)+'%' : '--'}</div>
-            {metrics && getStatusBadge('memoryUsage', metrics.memoryUsage)}
+            <div className="text-xl sm:text-2xl font-bold">{metrics ? (metrics.memoryUsage*100).toFixed(1)+'%' : '--'}</div>
+            {metrics && <div className="mt-2">{getStatusBadge('memoryUsage', metrics.memoryUsage)}</div>}
             <div className="text-xs text-muted-foreground mt-1">Current Node.js memory usage</div>
           </CardContent>
         </Card>
@@ -142,32 +141,32 @@ export default function PerformancePage() {
       {/* Recent Alerts */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Performance Alerts</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Recent Performance Alerts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {alerts.length === 0 && <div className="text-sm text-muted-foreground">No alerts.</div>}
+          <div className="space-y-2 sm:space-y-3">
+            {alerts.length === 0 && <div className="text-xs sm:text-sm text-muted-foreground py-2">No alerts.</div>}
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 border rounded-lg"
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-start sm:items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                   <AlertTriangle 
-                    className={`h-4 w-4 ${
+                    className={`h-4 w-4 flex-shrink-0 mt-0.5 sm:mt-0 ${
                       alert.type === 'critical' ? 'text-red-500' :
                       alert.type === 'warning' ? 'text-yellow-500' :
                       'text-blue-500'
                     }`} 
                   />
-                  <div>
-                    <p className="font-medium text-sm">{alert.message}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-xs sm:text-sm break-words">{alert.message}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(alert.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <Badge variant={alert.resolved ? 'secondary' : 'destructive'}>
+                <Badge variant={alert.resolved ? 'secondary' : 'destructive'} className="text-xs sm:text-sm flex-shrink-0 w-fit">
                   {alert.resolved ? 'Resolved' : 'Active'}
                 </Badge>
               </div>

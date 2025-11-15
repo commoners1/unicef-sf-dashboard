@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageLoading } from '@/components/ui/loading';
 import { MetricsCard } from '@/features/dashboard';
 import { AuditApiService } from '@/services/api/audit/audit-api';
 import { QueueApiService } from '@/services/api/queue/queue-api';
@@ -102,14 +103,12 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Real-time system overview and key metrics
           </p>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <PageLoading text="Loading dashboard" subtitle="Fetching system metrics and health data" />
       </div>
     );
   }
@@ -136,16 +135,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Real-time system overview and key metrics
           </p>
         </div>
         <Button
           variant="outline"
+          size="sm"
           onClick={loadData}
           disabled={isLoading}
         >

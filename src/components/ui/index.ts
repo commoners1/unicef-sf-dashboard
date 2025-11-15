@@ -17,4 +17,5 @@ export { Switch } from './switch';
 export { Calendar } from './calendar';
 export { Popover } from './popover';
 export { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu';
+export { Loading, Skeleton, PageLoading, InlineLoading } from './loading';
 
