@@ -3,7 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard, RequireRole } from '@/features/auth';
 import { UsersPage, UserDetailsPage } from '@/features/users';
-import { ADMIN_ROLES } from '@/constants';
+import { ADMIN_ROLES, ROLES } from '@/constants';
+import { PageLoading } from '@/components/ui/loading';
 
 // Lazy load pages
 const OverviewPage = lazy(() => import('@/pages/overview'));
@@ -31,7 +32,7 @@ const JobDetailsPage = lazy(() => import('@/pages/job-details'));
 const ErrorDetailsPage = lazy(() => import('@/pages/error-details'));
 const NotFoundPage = lazy(() => import('@/pages/not-found'));
 
-const LoadingFallback = () => <div className="text-center m-8">Loading...</div>;
+const LoadingFallback = () => <PageLoading text="Loading page" subtitle="Please wait..." />;
 
 /**
  * Wraps a lazy-loaded component with Suspense
@@ -56,18 +57,33 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
 }
 
 /**
+ * Creates a protected route that requires SUPER_ADMIN role only
+ */
+function SuperAdminRoute({ component: Component }: { component: ComponentType }) {
+  return (
+    <RequireRole allowed={[ROLES.SUPER_ADMIN]}>
+      <LazyRoute component={Component} />
+    </RequireRole>
+  );
+}
+
+/**
  * Route configuration type
  */
 interface RouteConfig {
   path: string;
   component: ComponentType;
   requiresAdmin?: boolean;
+  requiresSuperAdmin?: boolean;
 }
 
 /**
  * Creates a route from configuration
  */
-function createRoute({ path, component, requiresAdmin }: RouteConfig) {
+function createRoute({ path, component, requiresAdmin, requiresSuperAdmin }: RouteConfig) {
+  if (requiresSuperAdmin) {
+    return <Route key={path} path={path} element={<SuperAdminRoute component={component} />} />;
+  }
   if (requiresAdmin) {
     return <Route key={path} path={path} element={<AdminRoute component={component} />} />;
   }
@@ -109,8 +125,8 @@ const protectedRoutes: RouteConfig[] = [
  */
 const adminRoutes: RouteConfig[] = [
   { path: 'permissions', component: PermissionsPage, requiresAdmin: true },
-  { path: 'errors', component: ErrorsPage, requiresAdmin: true },
-  { path: 'errors/:id', component: ErrorDetailsPage, requiresAdmin: true },
+  { path: 'errors', component: ErrorsPage, requiresSuperAdmin: true },
+  { path: 'errors/:id', component: ErrorDetailsPage, requiresSuperAdmin: true },
   { path: 'reports', component: ReportsPage, requiresAdmin: true },
   { path: 'settings', component: SettingsPage, requiresAdmin: true },
   { path: 'notifications', component: NotificationsPage, requiresAdmin: true },

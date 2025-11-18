@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types';
+import { formatRoleName } from '@/lib/utils';
 
 interface UsersTableProps {
   users: User[];
@@ -45,7 +46,7 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.company || '-'}</TableCell>
               <TableCell>
-                <Badge variant="outline">{user.role}</Badge>
+                <Badge variant="outline">{formatRoleName(user.role)}</Badge>
               </TableCell>
               <TableCell>
                 <Badge variant={user.isActive ? 'default' : 'secondary'}>

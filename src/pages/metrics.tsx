@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageLoading } from '@/components/ui/loading';
 import { AuditApiService } from '@/services/api/audit/audit-api';
 import { QueueApiService } from '@/services/api/queue/queue-api';
 import { 
@@ -110,14 +111,12 @@ export default function MetricsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Key Metrics</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Key Metrics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Performance metrics and system analytics
           </p>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <PageLoading text="Loading metrics" subtitle="Fetching performance data and analytics" />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 import { useDashboardStore } from '@/features/dashboard';
-import { CSRFProtection, RateLimiter, SecurityLogger, SECURITY_CONFIG } from '@/lib/security-enhancements';
+import { CSRFProtection, RateLimiter, SecurityLogger, SECURITY_CONFIG, SecureStorage } from '@/lib/security-enhancements';
 
 // Fallback to env var if store is not available (e.g., during SSR or initial load)
 const getDefaultBaseURL = () => {
@@ -22,6 +22,8 @@ export function createApiClient(): AxiosInstance {
     headers: {
       'Content-Type': 'application/json',
     },
+    // Enable credentials to send httpOnly cookies with requests
+    withCredentials: true,
   });
 
   // Add request interceptor to include auth token and update baseURL dynamically
@@ -31,11 +33,12 @@ export function createApiClient(): AxiosInstance {
       const currentStore = useDashboardStore.getState();
       config.baseURL = currentStore.currentEnvironment?.apiUrl || getDefaultBaseURL();
 
-      // Add auth token if available
-      const token = localStorage.getItem('jwt_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      // Ensure credentials are sent (for httpOnly cookies)
+      config.withCredentials = true;
+
+      // Note: Authentication is handled via httpOnly cookies
+      // The browser automatically sends cookies with requests
+      // No need to manually add Authorization header
 
       // Add CSRF token for state-changing operations
       // Check if current environment supports CSRF tokens
@@ -79,10 +82,11 @@ export function createApiClient(): AxiosInstance {
       // Log security-relevant errors
       if (error.response?.status === 401) {
         SecurityLogger.logAuthEvent('failed_login', { reason: 'unauthorized' });
-        // Handle unauthorized - clear tokens
+        // Handle unauthorized - clear user profile
+        // httpOnly cookies are managed by the browser, no need to clear them manually
         // AuthGuard will handle the redirect using React Router (respects basename)
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_profile');
+        // Use SecureStorage for secure removal
+        SecureStorage.removeItem('user_profile');
       } else if (error.response?.status === 403) {
         SecurityLogger.logSuspiciousActivity('FORBIDDEN_ACCESS_ATTEMPT', {
           url: error.config?.url,

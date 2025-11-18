@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { PageLoading } from '@/components/ui/loading';
 import { 
   Table, 
   TableBody, 
@@ -145,12 +146,14 @@ export default function ApiKeysPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">API Keys</h1>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">API Keys</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Manage your API keys and access tokens
+            </p>
+          </div>
         </div>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading API keys...</p>
-        </div>
+        <PageLoading text="Loading API keys" subtitle="Fetching your API key information" />
       </div>
     );
   }

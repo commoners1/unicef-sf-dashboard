@@ -81,7 +81,7 @@ const menuGroups: MenuGroup[] = [
       { key: 'audit-logs', label: 'Audit Trail', icon: <FileText className="h-4 w-4" />, permission: 'VIEW_AUDIT_LOGS' },
       { key: 'salesforce-logs', label: 'Salesforce Logs', icon: <Cloud className="h-4 w-4" />, permission: 'VIEW_AUDIT_LOGS' },
       { key: 'cron-jobs', label: 'Cron Jobs', icon: <Clock className="h-4 w-4" />, permission: 'MANAGE_CRON_JOBS' },
-      { key: 'errors', label: 'Error Tracking', icon: <AlertTriangle className="h-4 w-4" />, permission: 'VIEW_AUDIT_LOGS' },
+      { key: 'errors', label: 'Error Tracking', icon: <AlertTriangle className="h-4 w-4" />, permission: 'SUPER_ADMIN_ONLY' },
     ]
   },
   {
@@ -102,7 +102,7 @@ const menuGroups: MenuGroup[] = [
 
 export function Sidebar({ className }: SidebarProps) {
   const { sidebarCollapsed, setSidebarOpen } = useDashboardStore();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const location = useLocation();
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   
@@ -121,6 +121,12 @@ export function Sidebar({ className }: SidebarProps) {
   const isMenuItemVisible = (item: MenuItem): boolean => {
     if (item.isAlwaysVisible) return true;
     if (!item.permission) return true;
+    
+    // Special case for SUPER_ADMIN_ONLY
+    if (item.permission === 'SUPER_ADMIN_ONLY') {
+      return isSuperAdmin;
+    }
+    
     const permission = PERMISSIONS[item.permission as keyof typeof PERMISSIONS];
     if (permission) return hasPermission(permission);
     return true;

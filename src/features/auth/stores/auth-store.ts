@@ -34,9 +34,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           
           const response = await AuthApiService.login({ email, password });
           
-          // Store token and user data
-          AuthApiService.storeToken(response.access_token);
-          AuthApiService.storeUser(response.user);
+          // Debug: Log login response to verify user data structure
+          // console.log('Login response user data:', response.user);
+          
+          // Verify user has name field
+          if (!response.user || !response.user.name) {
+            console.warn('Login response missing user name:', response.user);
+          }
+          
+          // Store user data (authentication handled via httpOnly cookie)
+          // SECURITY: Only stores minimal non-sensitive data (id, name)
+          await AuthApiService.storeUser(response.user);
           
           set({
             user: response.user,
@@ -78,12 +86,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch (error) {
           console.warn('Logout error:', error);
         } finally {
+          // SECURITY: Complete cleanup on logout
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
           });
+          
+          // Clear all localStorage data
+          AuthApiService.clearAllStorage();
         }
       },
 
@@ -92,7 +104,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ isLoading: true });
           
           // Check if token exists and is valid
-          if (!AuthApiService.isAuthenticated()) {
+          const isAuth = await AuthApiService.isAuthenticated();
+          if (!isAuth) {
             set({
               user: null,
               isAuthenticated: false,
@@ -103,6 +116,15 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           // Try to get user profile
           const user = await AuthApiService.getProfile();
+          
+          // Debug: Log user data to verify API response
+          // console.log('User profile from API:', user);
+          
+          // Ensure we have the full user data with name
+          if (!user || !user.name) {
+            console.warn('User profile missing name field:', user);
+          }
+          
           set({
             user,
             isAuthenticated: true,
@@ -131,10 +153,24 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      partialize: (state) => {
+        // SECURITY: Exclude sensitive data from localStorage
+        // Only store minimal data needed for UI state
+        // Role and email should NOT be persisted
+        if (!state.user) {
+          return { isAuthenticated: false };
+        }
+        
+        // Store only minimal non-sensitive user data
+        return {
+          user: {
+            id: state.user.id,
+            name: state.user.name || '', // Only name for display
+            // DO NOT store: email, role, or any other sensitive data
+          },
+          isAuthenticated: state.isAuthenticated,
+        };
+      },
     }
   )
 );

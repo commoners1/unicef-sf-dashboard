@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Users, Settings, Plus } from 'lucide-react';
+import { formatRoleName } from '@/lib/utils';
 import { UserApiService, type User, type AvailableRoles } from '@/services/api/users/user-api';
 
 export default function PermissionsPage() {
@@ -192,7 +193,7 @@ export default function PermissionsPage() {
                       <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                         <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm sm:text-base truncate">{role}</h3>
+                          <h3 className="font-medium text-sm sm:text-base truncate">{formatRoleName(role)}</h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">{availableRoles?.descriptions[role]}</p>
                         </div>
                       </div>
@@ -219,7 +220,7 @@ export default function PermissionsPage() {
                                     onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
                                   >
                                     {availableRoles?.roles.map((r) => (
-                                      <option key={r} value={r}>{r}</option>
+                                      <option key={r} value={r}>{formatRoleName(r)}</option>
                                     ))}
                                   </select>
                                 </div>

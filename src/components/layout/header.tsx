@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { EnvironmentSelector } from '@/components/shared/environment-selector';
 import { useDashboardStore } from '@/features/dashboard';
 import { useAuthStore } from '@/features/auth';
+import { formatRoleName } from '@/lib/utils';
 import { Menu, Bell, User, Moon, Sun, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
@@ -56,7 +57,7 @@ export function Header({ className }: HeaderProps) {
           </Button>
           <div className="flex items-center space-x-1 sm:space-x-2">
             <h1 className="text-base sm:text-lg md:text-xl font-semibold truncate max-w-[120px] sm:max-w-none">
-              SF Dashboard
+              Salesforce Middleware
             </h1>
             <Badge variant="outline" className="text-xs hidden sm:inline-flex">
               v1.1.0
@@ -107,8 +108,8 @@ export function Header({ className }: HeaderProps) {
                   <p className="w-[200px] truncate text-sm text-muted-foreground">
                     {user?.email || 'user@example.com'}
                   </p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {user?.role || 'user'}
+                  <p className="text-xs text-muted-foreground">
+                    {formatRoleName(user?.role)}
                   </p>
                 </div>
               </div>

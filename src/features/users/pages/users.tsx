@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import type { User } from '@/types';
 import { UserApiService } from '@/services/api/users/user-api';
+import { formatRoleName } from '@/lib/utils';
 import { 
   Plus, 
   Users, 
@@ -134,11 +135,7 @@ export default function UsersPage() {
     // TODO: Implement search
   };
 
-  const ROLE_LABELS: Record<string, string> = {
-    'SUPER_ADMIN': 'Super Admin',
-    'ADMIN': 'Admin',
-    'USER': 'User',
-  };
+  // Role labels are now handled by formatRoleName utility
 
   const columns: Column<User>[] = [
     {
@@ -203,7 +200,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-end space-x-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <Badge variant={getRoleVariant(user.role)}>
-              {ROLE_LABELS[user.role] || (user.role ? user.role[0].toUpperCase() + user.role.slice(1).toLowerCase() : 'User')}
+              {formatRoleName(user.role)}
             </Badge>
           </div>
         );

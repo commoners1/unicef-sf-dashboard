@@ -55,4 +55,4 @@ export const environments: EnvironmentConfig[] = [
   },
 ];
 
-export const defaultEnvironment = environments[2];
+export const defaultEnvironment = environments[1];

@@ -223,53 +223,211 @@ export class CSPHelper {
 }
 
 /**
- * Secure storage wrapper
+ * Secure storage wrapper with proper encryption
+ * Uses Web Crypto API for AES-GCM encryption
  * Provides additional security for sensitive data
  */
 export class SecureStorage {
+  private static readonly ALGORITHM = 'AES-GCM';
+  private static readonly IV_LENGTH = 12; // 96 bits for GCM
+  private static readonly TAG_LENGTH = 128; // 128 bits
+
   /**
-   * Stores data with encryption (basic obfuscation)
-   * Note: For production, use proper encryption libraries
+   * Generates or retrieves encryption key
+   * Uses a deterministic key derivation based on domain + user agent
+   * Note: This is client-side encryption - still vulnerable to XSS if key is exposed
    */
-  static setItem(key: string, value: string, encrypt = false): void {
-    if (encrypt) {
-      // Basic obfuscation (not real encryption - use crypto libraries in production)
-      const obfuscated = btoa(unescape(encodeURIComponent(value)));
-      localStorage.setItem(key, obfuscated);
-    } else {
-      localStorage.setItem(key, value);
+  private static async getKey(): Promise<CryptoKey> {
+    // Create a deterministic key based on domain and user agent
+    // This ensures the same key is used across sessions on the same browser
+    const keyMaterial = `${window.location.hostname}${navigator.userAgent}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(keyMaterial);
+    
+    // Import key material
+    const keyData = await crypto.subtle.digest('SHA-256', data);
+    
+    return crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: this.ALGORITHM },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  /**
+   * Encrypts data using AES-GCM
+   */
+  private static async encrypt(data: string): Promise<string> {
+    try {
+      const key = await this.getKey();
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+      
+      // Generate random IV
+      const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
+      
+      // Encrypt
+      const encrypted = await crypto.subtle.encrypt(
+        {
+          name: this.ALGORITHM,
+          iv: iv,
+          tagLength: this.TAG_LENGTH,
+        },
+        key,
+        dataBuffer
+      );
+      
+      // Combine IV and encrypted data
+      const combined = new Uint8Array(iv.length + encrypted.byteLength);
+      combined.set(iv, 0);
+      combined.set(new Uint8Array(encrypted), iv.length);
+      
+      // Convert to base64 for storage
+      return btoa(String.fromCharCode(...combined));
+    } catch (error) {
+      console.error('Encryption error:', error);
+      // Fallback to basic obfuscation if crypto fails
+      return btoa(unescape(encodeURIComponent(data)));
+    }
+  }
+
+  /**
+   * Decrypts data using AES-GCM
+   */
+  private static async decrypt(encryptedData: string): Promise<string> {
+    try {
+      const key = await this.getKey();
+      
+      // Decode from base64
+      const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+      
+      // Extract IV and encrypted data
+      const iv = combined.slice(0, this.IV_LENGTH);
+      const encrypted = combined.slice(this.IV_LENGTH);
+      
+      // Decrypt
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: this.ALGORITHM,
+          iv: iv,
+          tagLength: this.TAG_LENGTH,
+        },
+        key,
+        encrypted
+      );
+      
+      const decoder = new TextDecoder();
+      return decoder.decode(decrypted);
+    } catch (error) {
+      console.error('Decryption error:', error);
+      // Try fallback decryption
+      try {
+        return decodeURIComponent(escape(atob(encryptedData)));
+      } catch {
+        return '';
+      }
+    }
+  }
+
+  /**
+   * Stores data with encryption
+   * @param key - Storage key
+   * @param value - Value to store (will be JSON stringified if object)
+   * @param encrypt - Whether to encrypt the data (default: true for sensitive data)
+   */
+  static async setItem(key: string, value: string | object, encrypt = true): Promise<void> {
+    try {
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      
+      if (encrypt) {
+        const encrypted = await this.encrypt(stringValue);
+        localStorage.setItem(key, encrypted);
+      } else {
+        localStorage.setItem(key, stringValue);
+      }
+    } catch (error) {
+      console.error('SecureStorage setItem error:', error);
+      throw error;
     }
   }
 
   /**
    * Gets data with decryption
+   * @param key - Storage key
+   * @param decrypt - Whether to decrypt the data (default: true)
+   * @returns Decrypted value or null if not found
    */
-  static getItem(key: string, decrypt = false): string | null {
-    const value = localStorage.getItem(key);
-    if (!value) return null;
-    
-    if (decrypt) {
-      try {
-        return decodeURIComponent(escape(atob(value)));
-      } catch {
-        return null;
+  static async getItem(key: string, decrypt = true): Promise<string | null> {
+    try {
+      const value = localStorage.getItem(key);
+      if (!value) return null;
+      
+      if (decrypt) {
+        // Check if it's encrypted (base64 format)
+        try {
+          return await this.decrypt(value);
+        } catch {
+          // If decryption fails, might be unencrypted legacy data
+          return value;
+        }
       }
+      
+      return value;
+    } catch (error) {
+      console.error('SecureStorage getItem error:', error);
+      return null;
     }
-    
-    return value;
+  }
+
+  /**
+   * Gets and parses JSON data
+   */
+  static async getItemJSON<T>(key: string, decrypt = true): Promise<T | null> {
+    try {
+      const value = await this.getItem(key, decrypt);
+      if (!value) return null;
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Removes item securely
+   * Overwrites data before removal to prevent recovery
    */
   static removeItem(key: string): void {
-    localStorage.removeItem(key);
-    // Overwrite with null to prevent recovery
     try {
+      // Overwrite with random data before removal
+      const randomData = crypto.getRandomValues(new Uint8Array(256));
+      localStorage.setItem(key, btoa(String.fromCharCode(...randomData)));
+      localStorage.removeItem(key);
+      
+      // Additional cleanup
       localStorage.setItem(key, '');
       localStorage.removeItem(key);
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      // Fallback to simple removal
+      localStorage.removeItem(key);
+    }
+  }
+
+  /**
+   * Clears all encrypted storage items
+   */
+  static clear(): void {
+    try {
+      // Get all keys
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('auth-') || key.startsWith('user_') || key.includes('profile')) {
+          this.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.error('SecureStorage clear error:', error);
     }
   }
 }

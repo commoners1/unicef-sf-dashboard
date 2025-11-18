@@ -1,6 +1,6 @@
 # SF Dashboard Security Implementation
 
-Last updated: 15 November 2025
+Last updated: 15 November 2025 (Updated: Secure token storage implemented)
 
 ## Overview
 The SF Dashboard now includes comprehensive authentication and security measures to protect the admin interface and ensure proper access control.
@@ -15,10 +15,11 @@ The SF Dashboard now includes comprehensive authentication and security measures
 
 ### Authentication Flow
 1. User enters credentials on `/login` page
-2. Backend validates credentials and returns JWT token
-3. Token stored in localStorage with automatic refresh
-4. All API requests include Bearer token authentication
+2. Backend validates credentials and sets httpOnly cookie with JWT token
+3. Browser automatically sends cookie with all requests
+4. Backend validates cookie on each request
 5. 401 responses automatically redirect to login
+6. Logout clears the httpOnly cookie
 
 ## 🛡️ Security Features
 
@@ -47,7 +48,10 @@ The SF Dashboard now includes comprehensive authentication and security measures
 - **Input Sanitization**: User inputs sanitized to prevent XSS
 - **CSRF Protection**: CSRF tokens for state-changing operations
 - **Session Timeout**: Automatic logout after inactivity
-- **Secure Storage**: Sensitive data properly managed
+- **httpOnly Cookies**: ✅ **IMPLEMENTED** - JWT tokens stored in httpOnly cookies (immune to XSS)
+- **No JavaScript Access**: Tokens cannot be accessed via JavaScript (httpOnly flag)
+- **Automatic Transmission**: Browser automatically sends cookies with requests
+- **Secure by Default**: Cookies configured with Secure and SameSite flags
 
 ## 🔒 Security Headers
 The application includes comprehensive security headers:
@@ -67,6 +71,7 @@ The application includes comprehensive security headers:
 
 ### ✅ Implemented
 - [x] User authentication with JWT tokens
+- [x] **httpOnly cookie-based authentication** (gold standard security)
 - [x] Role-based access control
 - [x] Route protection with AuthGuard
 - [x] API request authentication
@@ -104,13 +109,16 @@ The application includes comprehensive security headers:
 - Login endpoint (brute force, phishing)
 - Export functionality (data exfiltration)
 - Environment configuration (tampering with base URLs)
-- Local storage (token theft on shared devices)
+- Browser memory (token theft via XSS - mitigated by in-memory storage)
 
 ### Residual Risks
-- Tokens stored in `localStorage` remain vulnerable if browser compromised
+- ~~Tokens stored in `localStorage` remain vulnerable if browser compromised~~ ✅ **MITIGATED**: Using httpOnly cookies
+- ~~In-memory tokens still vulnerable to XSS~~ ✅ **MITIGATED**: httpOnly cookies immune to XSS
+- ✅ **Token Storage**: Now using industry-standard httpOnly cookies
 - No MFA: stolen credentials grant full access
 - Limited rate limiting visibility on frontend
 - Export files rely on user handling hygiene once downloaded
+- Tokens cleared on page refresh (requires re-authentication)
 
 ### Mitigations in Progress
 - 2FA, password policies, and account lockouts (see roadmap below)

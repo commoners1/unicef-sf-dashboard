@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { PageLoading } from '@/components/ui/loading';
 import { QueueApiService } from '@/services/api/queue/queue-api';
 import type { QueueHealth, DetailedStats } from '@/services/api/queue/queue-api';
 import { ExportApiService } from '@/services/api/export/export-api';
@@ -146,14 +147,12 @@ export function QueuePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Queue Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Queue Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Monitor and manage background job processing
           </p>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <PageLoading text="Loading queue data" subtitle="Fetching job status and queue health information" />
       </div>
     );
   }

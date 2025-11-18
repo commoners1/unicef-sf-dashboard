@@ -154,7 +154,7 @@ export default function QueuePageSimple() {
           </p>
         </div>
         <Button onClick={handleRefresh} disabled={isLoading} size="sm" className="w-full sm:w-auto">
-          <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-1.5 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>

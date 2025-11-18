@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { PageLoading } from '@/components/ui/loading';
 import { QueueApiService, type Job, type JobFilters } from '@/services/api/queue/queue-api';
 import { 
   FileText, 
@@ -293,16 +294,13 @@ export default function JobsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Job Details</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Job Details</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Monitor and manage queue jobs and their execution status
             </p>
           </div>
         </div>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading jobs...</p>
-        </div>
+        <PageLoading text="Loading jobs" subtitle="Fetching job information and execution status" />
       </div>
     );
   }
@@ -318,11 +316,11 @@ export default function JobsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
-            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="sm:mr-2 h-4 w-4" />
+            <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Export All</span>
             <span className="sm:hidden">Export</span>
           </Button>

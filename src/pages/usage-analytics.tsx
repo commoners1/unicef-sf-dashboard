@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageLoading } from '@/components/ui/loading';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -14,6 +15,15 @@ import {
 } from 'lucide-react';
 import { AnalyticsApiService, type UsageStats, type HourlyUsage, type TopEndpoint, type UserActivity } from '@/services/api/analytics/analytics-api';
 import { toast } from 'sonner';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart
+} from 'recharts';
 
 export default function UsageAnalyticsPage() {
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
@@ -22,9 +32,18 @@ export default function UsageAnalyticsPage() {
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     loadAnalyticsData();
+    
+    // Check screen size for responsive chart
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
   const loadAnalyticsData = async () => {
@@ -56,11 +75,24 @@ export default function UsageAnalyticsPage() {
     loadAnalyticsData();
   };
 
-  const getMaxHeight = (value: number, maxValue: number) => {
-    return (value / maxValue) * 100;
-  };
-
-  const maxRequests = hourlyData.length > 0 ? Math.max(...hourlyData.map(d => d.requests)) : 0;
+  const maxRequests = hourlyData.length > 0 ? Math.max(...hourlyData.map(d => d.requests || 0)) : 0;
+  
+  // Format data for Recharts and adjust time labels for GMT+7
+  const chartData = hourlyData.map(data => {
+    // Parse hour string (e.g., "16:44") and add 7 hours for GMT+7
+    const [hours, minutes] = data.hour.split(':').map(Number);
+    const adjustedDate = new Date();
+    adjustedDate.setHours(hours + 7, minutes, 0, 0);
+    
+    // Format back to HH:MM
+    const adjustedHour = `${adjustedDate.getHours().toString().padStart(2, '0')}:${adjustedDate.getMinutes().toString().padStart(2, '0')}`;
+    
+    return {
+      hour: adjustedHour,
+      requests: data.requests || 0,
+      users: data.users || 0,
+    };
+  });
 
   if (isLoading) {
     return (
@@ -68,10 +100,7 @@ export default function UsageAnalyticsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold">Usage Analytics</h1>
         </div>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading analytics data...</p>
-        </div>
+        <PageLoading text="Loading analytics data" subtitle="Fetching usage statistics and trends" />
       </div>
     );
   }
@@ -104,21 +133,21 @@ export default function UsageAnalyticsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={handleRefresh} className="flex-1 sm:flex-initial min-w-[100px]">
-            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <RefreshCw className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
-            <Calendar className="h-4 w-4 sm:mr-2" />
+            <Calendar className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Last 24 Hours</span>
             <span className="sm:hidden">24h</span>
           </Button>
           <Button variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
-            <Filter className="h-4 w-4 sm:mr-2" />
+            <Filter className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Filter</span>
             <span className="sm:hidden">Filter</span>
           </Button>
           <Button size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="h-4 w-4 sm:mr-2" />
+            <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Export</span>
             <span className="sm:hidden">Export</span>
           </Button>
@@ -202,37 +231,71 @@ export default function UsageAnalyticsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {hourlyData.length > 0 ? (
-              <>
-                <div className="flex items-end space-x-0.5 sm:space-x-1 h-24 sm:h-32 overflow-x-auto">
-                  {hourlyData.map((data, index) => (
-                    <div key={index} className="flex-1 flex flex-col items-center min-w-[20px] sm:min-w-0">
-                      <div 
-                        className="w-full bg-primary rounded-t"
-                        style={{ 
-                          height: `${getMaxHeight(data.requests, maxRequests)}%`,
-                          minHeight: '4px'
-                        }}
-                      ></div>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 transform -rotate-45 origin-left whitespace-nowrap">
-                        {data.hour}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
-                  <span>Midnight</span>
-                  <span>Noon</span>
-                  <span>Midnight</span>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No hourly data available
+          {hourlyData.length > 0 && maxRequests > 0 ? (
+            <div className="w-full">
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
+                  <XAxis
+                    dataKey="hour"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={isMobile ? 1 : 0}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    width={60}
+                    tickFormatter={(value) => value.toLocaleString()}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                    }}
+                    formatter={(value: number) => [value.toLocaleString(), 'Requests']}
+                    labelFormatter={(label) => `Time: ${label}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="requests"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fill="url(#colorRequests)"
+                    dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground pt-2 border-t border-border/50 mt-2">
+                <span className="font-medium">Midnight</span>
+                <span className="font-medium">Noon</span>
+                <span className="font-medium">Midnight</span>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              {hourlyData.length === 0 ? 'No hourly data available' : 'No request data to display'}
+            </div>
+          )}
         </CardContent>
       </Card>
 

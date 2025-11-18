@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageLoading } from '@/components/ui/loading';
 import { MonitoringApiService, type MonitoringHealth, type DetailedStats } from '@/services/api/monitoring/monitoring-api';
 import { 
   Monitor, 
@@ -169,12 +170,13 @@ export default function MonitoringPage() {
   if (isLoading && !healthData) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span>Loading monitoring data...</span>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">System Monitoring</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Real-time system health and performance monitoring
+          </p>
         </div>
+        <PageLoading text="Loading monitoring data" subtitle="Fetching system health and performance metrics" />
       </div>
     );
   }
@@ -221,11 +223,11 @@ export default function MonitoringPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleForceFlush} className="flex-1 sm:flex-initial">
-                <Settings className="h-4 w-4 sm:mr-2" />
+                <Settings className="h-4 w-4 mr-1.5 sm:mr-2" />
                 <span className="hidden sm:inline">Force Flush</span>
               </Button>
               <Button size="sm" onClick={loadMonitoringData} disabled={isLoading} className="flex-1 sm:flex-initial">
-                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-1.5 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>

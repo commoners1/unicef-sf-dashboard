@@ -1,8 +1,7 @@
 // Security utilities for the dashboard
 
 export const SECURITY_CONFIG = {
-  // Token storage key
-  TOKEN_KEY: 'jwt_token',
+  // Note: Token storage removed - using httpOnly cookies now
   USER_KEY: 'user_profile',
   
   // Token validation
@@ -89,7 +88,8 @@ export class SecurityUtils {
 
   // Clear sensitive data
   static clearSensitiveData(): void {
-    localStorage.removeItem(SECURITY_CONFIG.TOKEN_KEY);
+    // Clear user profile
+    // httpOnly cookies are managed by browser/backend, no need to clear client-side
     localStorage.removeItem(SECURITY_CONFIG.USER_KEY);
     sessionStorage.clear();
   }

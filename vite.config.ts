@@ -38,8 +38,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           radix: ['@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          charts: ['recharts', 'echarts', 'echarts-for-react'],
-          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          charts: ['recharts'],
           utils: ['clsx', 'tailwind-merge', 'class-variance-authority'],
         },
       },

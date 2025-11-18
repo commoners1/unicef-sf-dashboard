@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PageLoading } from '@/components/ui/loading';
 import { 
   FileText, 
   Download, 
@@ -227,7 +228,7 @@ export default function AuditLogsPage() {
         { label: 'Client Error (4xx)', value: '4xx' },
         { label: 'Server Error (5xx)', value: '5xx' },
       ],
-      render: (log) => {
+      render: (_, log) => {
         const getStatusVariant = (code: number) => {
           if (code >= 200 && code < 300) return 'default';
           if (code >= 400 && code < 500) return 'secondary';
@@ -303,6 +304,21 @@ export default function AuditLogsPage() {
     },
   ];
 
+  // Show initial loading state when page first loads
+  if (loading && logs.length === 0 && !error) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Audit Logs</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Monitor and analyze system activity and API usage
+          </p>
+        </div>
+        <PageLoading text="Loading audit logs" subtitle="Fetching logs and statistics" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -314,11 +330,11 @@ export default function AuditLogsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
-            <RefreshCw className={`sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="sm:mr-2 h-4 w-4" />
+            <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Export All</span>
             <span className="sm:hidden">Export</span>
           </Button>
@@ -425,7 +441,7 @@ export default function AuditLogsPage() {
 
       {/* View Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] w-[95vw] sm:w-full">
+        <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] w-[95vw] sm:w-full overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Eye className="h-4 w-4 sm:h-5 sm:w-5" />

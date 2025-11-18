@@ -109,19 +109,19 @@ export default function LogsPage() {
                 {isConnected ? 'Connected' : 'Disconnected'}
               </Badge>
               {isLoading && (
-                <Badge variant="outline" className="text-xs">
-                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                  Loading...
+                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  <span>Loading...</span>
                 </Badge>
               )}
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="flex-1 sm:flex-initial min-w-[100px]">
-                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-1.5 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
               <Button variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[100px]">
-                <Download className="h-4 w-4 sm:mr-2" />
+                <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
                 <span className="hidden sm:inline">Export</span>
                 <span className="sm:hidden">Export</span>
               </Button>

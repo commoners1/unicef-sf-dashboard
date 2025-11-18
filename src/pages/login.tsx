@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loading } from '@/components/ui/loading';
 import { useAuthStore } from '@/features/auth';
 import { InputValidator, SecurityLogger, RateLimiter } from '@/lib/security-enhancements';
-import { Loader2, Shield, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Shield, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -152,10 +153,10 @@ export default function LoginPage() {
                 disabled={isLoading || !email || !password}
               >
                 {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
+                  <div className="flex items-center justify-center gap-2">
+                    <Loading variant="spinner" size="sm" />
+                    <span>Signing in...</span>
+                  </div>
                 ) : (
                   'Sign In'
                 )}

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { PageLoading } from '@/components/ui/loading';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import ErrorsApiService, { type Error } from '@/services/api/errors/errors-api';
 
 export default function ErrorDetailsPage() {
@@ -17,22 +21,79 @@ export default function ErrorDetailsPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="m-12 text-center">Loading...</div>;
-  if (error || !errorData) return <div className="m-12 text-center text-destructive">{error || 'Error not found'}</div>;
-  return (
-    <div className="max-w-xl mx-auto mt-8 space-y-6">
-      <Link className="text-blue-600 hover:underline" to="/errors">&larr; Back to Errors</Link>
-      <div className="text-2xl font-bold mb-2">Error Details</div>
-      <div className="space-y-2 p-4 rounded shadow bg-card">
-        <div><strong>Message:</strong> {errorData.message || '-'}</div>
-        <div><strong>Type:</strong> {errorData.type}</div>
-        <div><strong>Source:</strong> {errorData.source}</div>
-        <div><strong>Resolved:</strong> {errorData.resolved ? 'Yes' : 'No'}</div>
-        <div><strong>Occurrences:</strong> {errorData.occurrences}</div>
-        <div><strong>First Seen:</strong> {errorData.firstSeen ? new Date(errorData.firstSeen).toLocaleString() : '-'}</div>
-        <div><strong>Last Seen:</strong> {errorData.lastSeen ? new Date(errorData.lastSeen).toLocaleString() : '-'}</div>
-        {/* Add more fields as needed */}
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Error Details</h1>
+        </div>
+        <PageLoading text="Loading error details" subtitle="Fetching error information" />
       </div>
+    );
+  }
+
+  if (error || !errorData) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Error Details</h1>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {error || 'Error not found'}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link className="text-primary hover:underline inline-flex items-center gap-2 mb-4" to="/errors">
+          &larr; Back to Errors
+        </Link>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Error Details</h1>
+      </div>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="grid gap-4">
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Message:</strong>
+              <p className="mt-1">{errorData.message || '-'}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Type:</strong>
+              <p className="mt-1">{errorData.type}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Source:</strong>
+              <p className="mt-1">{errorData.source}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Resolved:</strong>
+              <p className="mt-1">{errorData.resolved ? 'Yes' : 'No'}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Occurrences:</strong>
+              <p className="mt-1">{errorData.occurrences}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">First Seen:</strong>
+              <p className="mt-1">{errorData.firstSeen ? new Date(errorData.firstSeen).toLocaleString() : '-'}</p>
+            </div>
+            <div>
+              <strong className="text-sm font-medium text-muted-foreground">Last Seen:</strong>
+              <p className="mt-1">{errorData.lastSeen ? new Date(errorData.lastSeen).toLocaleString() : '-'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

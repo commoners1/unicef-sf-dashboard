@@ -250,7 +250,7 @@ export default function ReportsPage() {
                           disabled={!!downloadingId}
                           className="w-full sm:w-auto"
                         >
-                          <Download className="h-4 w-4 sm:mr-2" />
+                          <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
                           <span className="hidden sm:inline">{downloadingId === report.id ? 'Downloading...' : 'Download'}</span>
                           <span className="sm:hidden">{downloadingId === report.id ? '...' : 'Download'}</span>
                         </Button>
@@ -263,7 +263,7 @@ export default function ReportsPage() {
                           disabled={!!generatingId}
                           className="w-full sm:w-auto"
                         >
-                          <Calendar className="h-4 w-4 sm:mr-2" />
+                          <Calendar className="h-4 w-4 mr-1.5 sm:mr-2" />
                           <span className="hidden sm:inline">{generatingId === report.id ? 'Generating...' : 'Generate'}</span>
                           <span className="sm:hidden">{generatingId === report.id ? '...' : 'Generate'}</span>
                         </Button>

@@ -1,4 +1,5 @@
 import { getApiClient } from '../api-client';
+import { SecureStorage } from '@/lib/security-enhancements';
 
 // Use dynamic API client that switches based on current environment
 const authClient = getApiClient();
@@ -9,7 +10,7 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  // Note: access_token is no longer returned - authentication via httpOnly cookie
   user: User;
 }
 
@@ -40,90 +41,131 @@ export class AuthApiService {
   }
 
   // Get current user profile
+  // Authentication handled via httpOnly cookie (sent automatically)
   static async getProfile(): Promise<User> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) {
-      throw new Error('No authentication token found');
+    const response = await authClient.get('/user/profile');
+    
+    // Debug: Log API response to verify data structure
+    // console.log('API Profile Response:', response.data);
+    
+    // Ensure the response has all required fields
+    if (!response.data) {
+      throw new Error('Invalid profile response: missing data');
     }
-
-    const response = await authClient.get('/user/profile', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    
+    // Verify name field exists
+    if (!response.data.name) {
+      console.warn('Profile response missing name field:', response.data);
+    }
+    
     return response.data;
   }
 
   // Refresh token
-  static async refreshToken(): Promise<{ access_token: string }> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await authClient.post('/auth/refresh', {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+  // Authentication handled via httpOnly cookie (sent automatically)
+  static async refreshToken(): Promise<void> {
+    await authClient.post('/auth/refresh');
+    // Cookie is automatically refreshed by backend
   }
 
   // Logout user
+  // Authentication handled via httpOnly cookie (sent automatically)
   static async logout(): Promise<void> {
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-      try {
-        await authClient.post('/auth/logout', {}, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch (error) {
-        // Continue with logout even if server call fails
-        console.warn('Logout server call failed:', error);
-      }
+    try {
+      // Backend will clear the httpOnly cookie
+      await authClient.post('/auth/logout');
+    } catch (error) {
+      // Continue with logout even if server call fails
+      console.warn('Logout server call failed:', error);
+    } finally {
+      // SECURITY: Complete cleanup of all storage
+      this.clearAllStorage();
     }
-    
-    // Clear local storage
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_profile');
+  }
+
+  // SECURITY: Clear all authentication-related storage
+  static clearAllStorage(): void {
+    try {
+      // Clear encrypted user profile
+      SecureStorage.removeItem('user_profile');
+      
+      // Clear auth storage (Zustand persist)
+      localStorage.removeItem('auth-storage');
+      
+      // Clear any other auth-related storage
+      SecureStorage.clear();
+      
+      // SECURITY: Clear dashboard-storage on logout for sensitive environments
+      // This prevents exposing production API URLs and feature flags
+      // Note: User can still manually switch environments after login
+      const dashboardStorage = localStorage.getItem('dashboard-storage');
+      if (dashboardStorage) {
+        try {
+          const parsed = JSON.parse(dashboardStorage);
+          // Only clear if it contains production environment info
+          if (parsed?.state?.currentEnvironment?.isProduction === true) {
+            localStorage.removeItem('dashboard-storage');
+            // console.log('Cleared dashboard-storage containing production environment');
+          }
+        } catch {
+          // If parsing fails, don't clear (might be corrupted)
+        }
+      }
+      
+      // Additional cleanup: clear all cookies (if any client-side cookies exist)
+      document.cookie.split(';').forEach(cookie => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        // Clear cookie with all possible paths
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      });
+      
+      // Clear sessionStorage as well
+      sessionStorage.clear();
+    } catch (error) {
+      console.error('Error clearing storage:', error);
+    }
   }
 
   // Check if user is authenticated
-  static isAuthenticated(): boolean {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) return false;
-
-    try {
-      // Basic JWT token validation (check if not expired)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const now = Math.floor(Date.now() / 1000);
-      return payload.exp > now;
-    } catch {
-      return false;
-    }
+  // With httpOnly cookies, we can't check token existence client-side
+  // This method now checks if we have a stored user profile
+  // The backend will validate the cookie on each request
+  static async isAuthenticated(): Promise<boolean> {
+    // Check if we have a stored user profile
+    // Actual authentication is validated by backend via httpOnly cookie
+    const user = await this.getStoredUser();
+    return user !== null;
   }
 
-  // Get stored user profile
-  static getStoredUser(): User | null {
+  // Get stored user profile (minimal data only)
+  static async getStoredUser(): Promise<Partial<User> | null> {
     try {
-      const userStr = localStorage.getItem('user_profile');
-      return userStr ? JSON.parse(userStr) : null;
+      // Use SecureStorage to get encrypted data
+      const user = await SecureStorage.getItemJSON<Partial<User>>('user_profile', true);
+      return user;
     } catch {
       return null;
     }
   }
 
-  // Store user profile
-  static storeUser(user: User): void {
-    localStorage.setItem('user_profile', JSON.stringify(user));
+  // Store user profile (SECURITY: Only store minimal non-sensitive data)
+  static async storeUser(user: User): Promise<void> {
+    // SECURITY: Do NOT store sensitive data in localStorage
+    // Only store minimal data needed for UI display
+    const minimalUser = {
+      id: user.id,
+      name: user.name || '', // Only name for display
+      // DO NOT store: email, role, or any other sensitive information
+    };
+    
+    // Encrypt and store using SecureStorage
+    await SecureStorage.setItem('user_profile', minimalUser, true);
   }
 
-  // Store auth token
-  static storeToken(token: string): void {
-    localStorage.setItem('jwt_token', token);
-  }
+  // Note: Token storage removed - authentication now via httpOnly cookies
+  // The backend sets the cookie, browser manages it automatically
 }
 
 export default AuthApiService;

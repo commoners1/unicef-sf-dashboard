@@ -7,7 +7,7 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  // Note: access_token removed - authentication now via httpOnly cookie
   user: User;
 }
 

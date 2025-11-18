@@ -189,13 +189,13 @@ export default function SettingsPage() {
       <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end pt-2">
         {hasChanges && (
           <Button variant="outline" size="sm" onClick={handleReset} className="flex-1 sm:flex-initial min-w-[100px]">
-            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <RefreshCw className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Reset</span>
             <span className="sm:hidden">Reset</span>
           </Button>
         )}
         <Button size="sm" onClick={handleSave} disabled={!hasChanges} className="flex-1 sm:flex-initial min-w-[100px]">
-          <Save className="h-4 w-4 sm:mr-2" />
+          <Save className="h-4 w-4 mr-1.5 sm:mr-2" />
           <span className="hidden sm:inline">Save Changes</span>
           <span className="sm:hidden">Save</span>
         </Button>

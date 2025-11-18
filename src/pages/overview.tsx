@@ -209,7 +209,7 @@ export default function OverviewPage() {
             disabled={isLoading}
             className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-1.5 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button
@@ -218,7 +218,7 @@ export default function OverviewPage() {
             onClick={() => handleExportOverview('csv')}
             className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <Download className="h-4 w-4 sm:mr-2" />
+            <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">CSV</span>
           </Button>
@@ -228,7 +228,7 @@ export default function OverviewPage() {
             onClick={() => handleExportOverview('json')}
             className="flex-1 sm:flex-initial min-w-[100px]"
           >
-            <Download className="h-4 w-4 sm:mr-2" />
+            <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">Export JSON</span>
             <span className="sm:hidden">JSON</span>
           </Button>
