@@ -122,7 +122,7 @@ export default function ApiKeysPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+    toast.success('Copied!');
   };
 
   const toggleKeyVisibility = (keyId: string) => {

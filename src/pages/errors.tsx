@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageLoading } from '@/components/ui/loading';
 import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/api/errors/errors-api';
-import { usePagination } from '@/hooks';
+import { usePaginatedFetch, useDataFetching } from '@/hooks';
 import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
 import { 
   AlertTriangle, 
@@ -24,68 +24,59 @@ import {
   User,
   Hash,
   FileText,
-  Globe
+  Globe,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function ErrorsPage() {
-  const [errors, setErrors] = useState<Error[]>([]);
-  const [stats, setStats] = useState<ErrorStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { pagination, setPagination, handlePageChange: setPage } = usePagination();
-  const [filters, setFilters] = useState<ErrorFilters>({});
   const [selectedError, setSelectedError] = useState<Error | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  // Load data on component mount
-  useEffect(() => {
-    loadErrors();
-    loadStats();
-  }, []);
+  // Use the new paginated fetch hook
+  const {
+    data: errors,
+    loading,
+    error: fetchError,
+    pagination,
+    filters,
+    setFilters,
+    handlePageChange,
+    handlePageSizeChange,
+    handleRefresh,
+  } = usePaginatedFetch<Error>({
+    fetchFn: ErrorsApiService.getErrors,
+    initialFilters: {} as ErrorFilters,
+    initialPageSize: 10,
+    autoFetch: true,
+    dataKey: 'data',
+  });
 
-  // Load errors from API
-  const loadErrors = async (page = 1, limit = 10, newFilters: ErrorFilters = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await ErrorsApiService.getErrors({
-        page,
-        limit,
-        ...newFilters,
-      });
-      
-      setErrors(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (err) {
-      console.error('Error loading errors:', err);
-      setError(getApiErrorMessage(err));
-      setErrors([]);
-      setPagination({ current: 1, pageSize: 10, total: 0 });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load error statistics
-  const loadStats = async () => {
-    try {
-      const statsData = await ErrorsApiService.getErrorStats();
-      setStats(statsData);
-    } catch (err) {
-      console.error('Error loading stats:', err);
-      // Don't set error state for stats failure, just log it
+  // Use the new data fetching hook for stats
+  const {
+    data: stats,
+    fetch: fetchStats,
+  } = useDataFetching<ErrorStats>({
+    fetchFn: ErrorsApiService.getErrorStats,
+    autoFetch: true,
+    onError: (err) => {
+      // Don't show error for stats failure, just log it
       // Stats are not critical for the page to function
-    }
-  };
+      console.error('Error loading stats:', err);
+    },
+  });
 
-  // Helper functions
-  const handleRefresh = async () => {
-    await Promise.all([loadErrors(pagination.current, pagination.pageSize, filters), loadStats()]);
+  // Combined refresh handler
+  const handleRefreshAll = async () => {
+    setActionError(null);
+    await Promise.all([handleRefresh(), fetchStats()]);
   };
 
   const handleView = (error: Error) => {
@@ -96,44 +87,79 @@ export default function ErrorsPage() {
 
   const handleDelete = async (error: Error) => {
     try {
+      setActionError(null);
       await ErrorsApiService.deleteError(error.id);
-      await loadErrors(pagination.current, pagination.pageSize, filters);
+      await handleRefresh(); // Refresh the list after deletion
     } catch (err) {
       console.error('Delete failed:', err);
-      setError(getApiErrorMessage(err));
+      setActionError(getApiErrorMessage(err));
     }
   };
 
-  const handleExport = async (error?: Error) => {
+  // Helper function to clean filters - remove undefined/null/empty values and pagination fields
+  const cleanErrorFilters = (inputFilters: ErrorFilters): ErrorFilters => {
+    const cleaned: ErrorFilters = {};
+    
+    // List of valid filter fields for export (exclude pagination/sorting)
+    if (inputFilters.type && inputFilters.type !== '') {
+      cleaned.type = inputFilters.type;
+    }
+    if (inputFilters.source && inputFilters.source !== '') {
+      cleaned.source = inputFilters.source;
+    }
+    if (inputFilters.environment && inputFilters.environment !== '') {
+      cleaned.environment = inputFilters.environment;
+    }
+    if (inputFilters.resolved !== undefined && inputFilters.resolved !== null) {
+      cleaned.resolved = inputFilters.resolved;
+    }
+    if (inputFilters.startDate && inputFilters.startDate !== '') {
+      cleaned.startDate = inputFilters.startDate;
+    }
+    if (inputFilters.endDate && inputFilters.endDate !== '') {
+      cleaned.endDate = inputFilters.endDate;
+    }
+    if (inputFilters.search && inputFilters.search !== '') {
+      cleaned.search = inputFilters.search;
+    }
+    
+    return cleaned;
+  };
+
+  const handleExport = async (error?: Error, includeFilters: boolean = false) => {
     try {
+      setActionError(null);
       if (error) {
         downloadJSON(error, `error-${error.id}`);
       } else {
-        const blob = await ErrorsApiService.exportErrors(filters, 'csv');
-        downloadBlob(blob, `errors-${formatDateForFilename()}.csv`);
+        // If includeFilters is false, use empty filters to export all data
+        // If true, clean filters to remove pagination fields and undefined values
+        const exportFilters = includeFilters 
+          ? cleanErrorFilters(filters as ErrorFilters)
+          : {} as ErrorFilters;
+        
+        const blob = await ErrorsApiService.exportErrors(exportFilters, 'xlsx');
+        
+        const filename = includeFilters
+          ? `errors-filtered-${formatDateForFilename()}.xlsx`
+          : `errors-all-${formatDateForFilename()}.xlsx`;
+        downloadBlob(blob, filename);
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError(getApiErrorMessage(err));
+      setActionError(getApiErrorMessage(err));
     }
-  };
-
-  // Handle pagination change
-  const handlePageChange = (page: number) => {
-    setPage(page);
-    loadErrors(page, pagination.pageSize, filters);
   };
 
   // Handle filter change
   const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-    loadErrors(1, pagination.pageSize, newFilters);
+    setFilters(newFilters as ErrorFilters);
   };
 
   // Handle search
   const handleSearch = (searchTerm: string) => {
     const newFilters = { ...filters, search: searchTerm };
-    handleFilterChange(newFilters);
+    setFilters(newFilters as ErrorFilters);
   };
 
   const columns: Column<Error>[] = [
@@ -253,7 +279,7 @@ export default function ErrorsPage() {
   ];
 
   // Show initial loading state when page first loads
-  if (loading && errors.length === 0 && !error) {
+  if (loading && errors.length === 0 && !fetchError) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -277,23 +303,38 @@ export default function ErrorsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+          <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
             <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Export All</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+                <span className="sm:hidden">Export</span>
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+                <Download className="mr-2 h-4 w-4" />
+                Export All
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+                <Filter className="mr-2 h-4 w-4" />
+                Export Filtered
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {error && (
+      {(fetchError || actionError) && (
         <Alert variant="destructive" className="border-destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="mt-1">
-            {error}
+            {fetchError || actionError}
           </AlertDescription>
         </Alert>
       )}
@@ -355,6 +396,7 @@ export default function ErrorsPage() {
         data={errors}
         columns={columns}
         loading={loading}
+        serverSidePagination={true}
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,
@@ -362,12 +404,19 @@ export default function ErrorsPage() {
           showSizeChanger: true,
           pageSizeOptions: [5, 10, 20, 50],
         }}
-        onPaginationChange={handlePageChange}
+        onPaginationChange={(page, pageSize) => {
+          if (pageSize && pageSize !== pagination.pageSize) {
+            handlePageSizeChange(pageSize);
+          } else {
+            handlePageChange(page);
+          }
+        }}
         onSort={(_field, _direction) => {
           // TODO: Implement sorting
         }}
         onFilter={handleFilterChange}
         onSearch={handleSearch}
+        searchValue={filters?.search || ''}
         searchPlaceholder="Search errors by message, source, or level..."
         actions={{
           view: handleView,

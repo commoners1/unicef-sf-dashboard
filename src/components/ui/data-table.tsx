@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -68,16 +68,21 @@ export interface DataTableProps<T> {
   onFilter?: (filters: Record<string, any>) => void;
   onSearch?: (searchTerm: string) => void;
   searchPlaceholder?: string;
+  searchValue?: string; // Controlled search value (for server-side search)
   actions?: {
     view?: (record: T) => void;
     edit?: (record: T) => void;
     delete?: (record: T) => void;
     export?: (record: T) => void;
+    copy?: (record: T) => void;
   };
   rowKey?: keyof T;
   className?: string;
   emptyMessage?: string;
   serverSidePagination?: boolean;
+  showSelectionFilters?: boolean; // Show dropdown/select-based filters
+  showSearchFilter?: boolean; // Show typing-based search input
+  customFilters?: React.ReactNode; // Custom filter content to show when showSearchFilter is true
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -90,19 +95,26 @@ export function DataTable<T extends Record<string, any>>({
   onFilter,
   onSearch,
   searchPlaceholder = 'Search...',
+  searchValue: controlledSearchValue,
   actions,
   rowKey = 'id' as keyof T,
   className = '',
   emptyMessage = 'No data available',
   serverSidePagination = false,
+  showSelectionFilters = true, // Default to true for backward compatibility
+  showSearchFilter = true, // Default to true for backward compatibility
+  customFilters,
 }: DataTableProps<T>) {
-  const [searchTerm, setSearchTerm] = useState('');
+  // Use controlled search value if provided (for server-side), otherwise use local state
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const searchTerm = controlledSearchValue !== undefined ? controlledSearchValue : localSearchTerm;
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Detect mobile/tablet for card view
   useEffect(() => {
@@ -188,19 +200,71 @@ export function DataTable<T extends Record<string, any>>({
     }
   };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    if (onSearch) {
-      onSearch(value);
+  // Use local state for search input to prevent focus loss from parent re-renders
+  // Only sync with controlled value when it changes externally (not from our typing)
+  const [inputValue, setInputValue] = useState(controlledSearchValue || '');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+  
+  // Sync local input value with controlled value only when it changes externally
+  useEffect(() => {
+    if (controlledSearchValue !== undefined && !isTypingRef.current) {
+      setInputValue(controlledSearchValue);
     }
-  };
+  }, [controlledSearchValue]);
+  
+  // Also sync local state for uncontrolled mode
+  useEffect(() => {
+    if (controlledSearchValue === undefined) {
+      setInputValue(localSearchTerm);
+    }
+  }, [localSearchTerm, controlledSearchValue]);
+  
+  const handleSearch = useCallback((value: string) => {
+    // Update local input value immediately
+    setInputValue(value);
+    isTypingRef.current = true;
+    
+    // Update local state if not controlled
+    if (controlledSearchValue === undefined) {
+      setLocalSearchTerm(value);
+    }
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Debounce only the parent callback to prevent focus loss from re-renders
+    searchTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      if (onSearch) {
+        onSearch(value);
+      }
+    }, 300); // 300ms debounce
+  }, [controlledSearchValue, onSearch]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const clearFilters = () => {
     setFilters({});
-    setSearchTerm('');
+    setInputValue('');
+    if (controlledSearchValue === undefined) {
+      setLocalSearchTerm('');
+    }
     if (onFilter) onFilter({});
     if (onSearch) onSearch('');
+    isTypingRef.current = false;
   };
+  
+  const handleClearFilters = clearFilters;
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) return null;
@@ -215,7 +279,7 @@ export function DataTable<T extends Record<string, any>>({
     return columns.filter(col => col.filterable);
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '') || searchTerm;
+  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '') || (inputValue || searchTerm);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -228,21 +292,24 @@ export function DataTable<T extends Record<string, any>>({
               <span>Search & Filters</span>
               {hasActiveFilters && (
                 <Badge variant="secondary" className="text-xs ml-1">
-                  {Object.values(filters).filter(v => v !== undefined && v !== '').length + (searchTerm ? 1 : 0)} active
+                  {Object.values(filters).filter(v => v !== undefined && v !== '').length + (inputValue || searchTerm ? 1 : 0)} active
                 </Badge>
               )}
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex-1 sm:flex-initial min-w-[100px]"
-              >
-                <Filter className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{showFilters ? 'Hide' : 'Show'} Filters</span>
-                <span className="sm:hidden">{showFilters ? 'Hide' : 'Show'}</span>
-              </Button>
+              {/* Show "Show Filters" button if showSelectionFilters (with customFilters) or showSearchFilter (with filterable columns) is true */}
+              {(showSelectionFilters && customFilters) || (showSearchFilter && getFilterableColumns().length > 0) ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex-1 sm:flex-initial min-w-[100px]"
+                >
+                  <Filter className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{showFilters ? 'Hide' : 'Show'} Filters</span>
+                  <span className="sm:hidden">{showFilters ? 'Hide' : 'Show'}</span>
+                </Button>
+              ) : null}
               {hasActiveFilters && (
                 <Button
                   variant="outline"
@@ -258,19 +325,31 @@ export function DataTable<T extends Record<string, any>>({
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 h-9 sm:h-10"
-              />
-            </div>
+            {/* Search - Always show if onSearch is provided */}
+            {onSearch && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder={searchPlaceholder}
+                  value={inputValue}
+                  onChange={(e) => {
+                    handleSearch(e.target.value);
+                  }}
+                  className="pl-10 h-9 sm:h-10"
+                />
+              </div>
+            )}
 
-            {/* Filters */}
-            {showFilters && getFilterableColumns().length > 0 && (
+            {/* Selection Filters (customFilters) - Show when showFilters is true and showSelectionFilters is true */}
+            {showSelectionFilters && showFilters && customFilters && (
+              <div className="pt-2 border-t border-border">
+                {customFilters}
+              </div>
+            )}
+
+            {/* Specific Search Filters (text inputs for filterable columns) - Show when showFilters is true and showSearchFilter is true */}
+            {showSearchFilter && showFilters && getFilterableColumns().length > 0 && (
               <div className="pt-2 border-t border-border">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {getFilterableColumns().map((column) => (
@@ -278,31 +357,12 @@ export function DataTable<T extends Record<string, any>>({
                       <label className="text-xs sm:text-sm font-medium text-foreground block">
                         {column.title}
                       </label>
-                      {column.filterType === 'select' && column.filterOptions ? (
-                        <Select
-                          value={filters[column.key] || ''}
-                          onValueChange={(value) => handleFilter(column.key, value || undefined)}
-                        >
-                          <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
-                            <SelectValue placeholder={`All ${column.title}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">All {column.title}</SelectItem>
-                            {column.filterOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          placeholder={`Filter by ${column.title}`}
-                          value={filters[column.key] || ''}
-                          onChange={(e) => handleFilter(column.key, e.target.value || undefined)}
-                          className="h-9 sm:h-10 text-xs sm:text-sm"
-                        />
-                      )}
+                      <Input
+                        placeholder={`Filter by ${column.title}`}
+                        value={filters[column.key] || ''}
+                        onChange={(e) => handleFilter(column.key, e.target.value || undefined)}
+                        className="h-9 sm:h-10 text-xs sm:text-sm"
+                      />
                     </div>
                   ))}
                 </div>
@@ -323,7 +383,43 @@ export function DataTable<T extends Record<string, any>>({
                   <Loading variant="spinner" size="lg" text="Loading data..." />
                 </div>
               ) : paginatedData.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">{emptyMessage}</div>
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="text-muted-foreground">
+                                {inputValue || searchTerm ? (
+                              <div className="space-y-2">
+                                <p className="text-sm sm:text-base">{emptyMessage}</p>
+                                <p className="text-xs sm:text-sm">
+                                  No results found for <span className="font-semibold text-foreground">"{inputValue || searchTerm}"</span>
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSearch('')}
+                                  className="mt-2 text-xs h-7"
+                                >
+                                  Clear search
+                                </Button>
+                              </div>
+                            ) : hasActiveFilters ? (
+                        <div className="space-y-2">
+                          <p className="text-sm sm:text-base">{emptyMessage}</p>
+                          <p className="text-xs sm:text-sm">Try adjusting your filters</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearFilters}
+                            className="mt-2 text-xs h-7"
+                          >
+                            Clear all filters
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base">{emptyMessage}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               ) : (
                 paginatedData.map((record, index) => {
                   const recordKey = String(record[rowKey] || index);
@@ -389,15 +485,28 @@ export function DataTable<T extends Record<string, any>>({
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               )}
+                              {actions.copy && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    actions.copy!(record);
+                                  }}
+                                  aria-label="Copy"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              )}
                               {actions.export && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={() => actions.export!(record)}
-                                  aria-label="Copy"
+                                  aria-label="Export"
                                 >
-                                  <Copy className="h-4 w-4" />
+                                  <Download className="h-4 w-4" />
                                 </Button>
                               )}
                               {actions.delete && (
@@ -536,7 +645,41 @@ export function DataTable<T extends Record<string, any>>({
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8">
-                        <div className="text-muted-foreground">{emptyMessage}</div>
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="text-muted-foreground">
+                            {inputValue || searchTerm ? (
+                              <div className="space-y-2">
+                                <p className="text-sm sm:text-base">{emptyMessage}</p>
+                                <p className="text-xs sm:text-sm">
+                                  No results found for <span className="font-semibold text-foreground">"{inputValue || searchTerm}"</span>
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSearch('')}
+                                  className="mt-2 text-xs h-7"
+                                >
+                                  Clear search
+                                </Button>
+                              </div>
+                            ) : hasActiveFilters ? (
+                              <div className="space-y-2">
+                                <p className="text-sm sm:text-base">{emptyMessage}</p>
+                                <p className="text-xs sm:text-sm">Try adjusting your filters</p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleClearFilters}
+                                  className="mt-2 text-xs h-7"
+                                >
+                                  Clear all filters
+                                </Button>
+                              </div>
+                            ) : (
+                              <p className="text-sm sm:text-base">{emptyMessage}</p>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

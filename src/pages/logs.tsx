@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,19 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Monitor, RefreshCw, AlertTriangle, CheckCircle, Clock, User, Key } from 'lucide-react';
+import { usePaginatedFetch, useAutoRefresh } from '@/hooks';
 import { LogsApiService, type AuditLog } from '@/services/api/logs/logs-api';
 
 export default function LogsPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isConnected] = useState(true);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 50,
-    total: 0,
-    pages: 0,
-  });
   const [filter, setFilter] = useState({
     level: 'all',
     search: '',
@@ -26,63 +18,50 @@ export default function LogsPage() {
     statusCode: 'all',
   });
 
-  // Load logs from API
-  const loadLogs = async (page = 1, limit = 50) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const filters = {
-        page,
-        limit,
-        search: filter.search || undefined,
-        method: filter.method !== 'all' ? filter.method : undefined,
-        statusCode: filter.statusCode !== 'all' ? parseInt(filter.statusCode) : undefined,
-      };
-      
-      const response = await LogsApiService.getLogs(filters);
-      
-      setLogs(response.logs);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-        pages: response.pagination.pages,
-      });
-    } catch (err) {
-      console.error('Error loading logs:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      const responseData = (err as any)?.response?.data;
-      console.error('Error details:', responseData);
-      setError(`Failed to load logs: ${responseData?.message || errorMessage}`);
-      setLogs([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Build filters for API
+  const buildApiFilters = () => ({
+    search: filter.search || undefined,
+    method: filter.method !== 'all' ? filter.method : undefined,
+    statusCode: filter.statusCode !== 'all' ? parseInt(filter.statusCode) : undefined,
+  });
 
-  // Load logs on component mount
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  // Use the new paginated fetch hook
+  const {
+    data: logs,
+    loading: isLoading,
+    error,
+    pagination,
+    setFilters: setApiFilters,
+    handlePageChange,
+    handleRefresh,
+  } = usePaginatedFetch<AuditLog>({
+    fetchFn: async (paginationFilters) => {
+      const apiFilters = buildApiFilters();
+      return LogsApiService.getLogs({
+        ...paginationFilters,
+        ...apiFilters,
+      });
+    },
+    initialFilters: buildApiFilters(),
+    initialPageSize: 50,
+    autoFetch: true,
+    dataKey: 'logs', // API returns 'logs' instead of 'data'
+  });
 
   // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadLogs(pagination.current, pagination.pageSize);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [pagination.current, pagination.pageSize]);
+  useAutoRefresh(handleRefresh, { interval: 30000 });
 
   // Handle filter changes
   const handleFilterChange = (key: string, value: string) => {
-    setFilter(prev => ({ ...prev, [key]: value }));
-    // Reset to first page when filters change
-    loadLogs(1, pagination.pageSize);
-  };
-
-  const handleRefresh = () => {
-    loadLogs(pagination.current, pagination.pageSize);
+    const newFilter = { ...filter, [key]: value };
+    setFilter(newFilter);
+    // Update API filters and refetch will happen automatically
+    const apiFilters = {
+      search: newFilter.search || undefined,
+      method: newFilter.method !== 'all' ? newFilter.method : undefined,
+      statusCode: newFilter.statusCode !== 'all' ? parseInt(newFilter.statusCode) : undefined,
+    };
+    setApiFilters(apiFilters);
   };
 
 
@@ -256,36 +235,39 @@ export default function LogsPage() {
             </ScrollArea>
 
             {/* Pagination */}
-            {pagination.pages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-                <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                  Showing {((pagination.current - 1) * pagination.pageSize) + 1} to {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total} logs
+            {(() => {
+              const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+              return totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+                  <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                    Showing {((pagination.current - 1) * pagination.pageSize) + 1} to {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total} logs
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.current - 1)}
+                      disabled={pagination.current <= 1 || isLoading}
+                      className="text-xs sm:text-sm"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-xs sm:text-sm whitespace-nowrap">
+                      Page {pagination.current} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.current + 1)}
+                      disabled={pagination.current >= totalPages || isLoading}
+                      className="text-xs sm:text-sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadLogs(pagination.current - 1, pagination.pageSize)}
-                    disabled={pagination.current <= 1 || isLoading}
-                    className="text-xs sm:text-sm"
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-xs sm:text-sm whitespace-nowrap">
-                    Page {pagination.current} of {pagination.pages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadLogs(pagination.current + 1, pagination.pageSize)}
-                    disabled={pagination.current >= pagination.pages || isLoading}
-                    className="text-xs sm:text-sm"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </CardContent>
       </Card>

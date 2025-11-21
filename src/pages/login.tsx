@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loading } from '@/components/ui/loading';
 import { useAuthStore } from '@/features/auth';
 import { InputValidator, SecurityLogger, RateLimiter } from '@/lib/security-enhancements';
-import { Shield, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -75,9 +75,11 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="bg-primary p-3 rounded-full shadow-lg dark:shadow-primary/20">
-              <Shield className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <img 
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt="SF Middleware Dashboard Logo" 
+              className="h-16 w-16 object-contain"
+            />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-foreground">
             SF Middleware Dashboard

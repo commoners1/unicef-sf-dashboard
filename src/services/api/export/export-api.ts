@@ -171,6 +171,51 @@ export class ExportApiService {
     this.downloadBlob(blob, `${filename}.json`);
   }
 
+  static async exportToXLSX(data: any[], filename: string, fields?: string[]): Promise<void> {
+    // Dynamic import to avoid loading exceljs if not needed
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    if (data.length === 0) {
+      // Create empty sheet with headers
+      const headers = fields || [];
+      worksheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    } else {
+      const headers = fields || Object.keys(data[0]);
+      worksheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+
+      data.forEach(row => {
+        const rowData: Record<string, any> = {};
+        headers.forEach(header => {
+          const value = row[header];
+          // Handle nested objects (e.g., user.name)
+          if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+            rowData[header] = JSON.stringify(value);
+          } else {
+            rowData[header] = value ?? '';
+          }
+        });
+        worksheet.addRow(rowData);
+      });
+
+      worksheet.columns.forEach((column) => {
+        if (column.header) {
+          column.alignment = { vertical: 'top', wrapText: true };
+        }
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    this.downloadBlob(blob, `${filename}.xlsx`);
+  }
+
   static generateFilename(prefix: string, format: ExportFormat): string {
     const timestamp = new Date().toISOString().split('T')[0];
     return `${prefix}-${timestamp}.${format}`;

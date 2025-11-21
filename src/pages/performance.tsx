@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAutoRefresh } from '@/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,10 +38,9 @@ export default function PerformancePage() {
   };
 
   useEffect(() => { loadData(); }, []);
-  useEffect(() => {
-    const interval = setInterval(loadData, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  
+  // Auto-refresh every 60 seconds
+  useAutoRefresh(loadData, { interval: 60000 });
 
   const handleRefresh = () => { loadData(); };
   // const handleExport = () => { /* TODO: Export feature */ };

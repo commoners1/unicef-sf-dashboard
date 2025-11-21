@@ -88,7 +88,13 @@ const menuGroups: MenuGroup[] = [
     title: 'Analytics',
     items: [
       { key: 'performance', label: 'Performance', icon: <TrendingUp className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
+    ]
+  },
+  {
+    title: 'Reports',
+    items: [
       { key: 'reports', label: 'Reports', icon: <FileText className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
+      { key: 'salesforce-response', label: 'Salesforce Response', icon: <Cloud className="h-4 w-4" />, permission: 'VIEW_AUDIT_LOGS' },
     ]
   },
   {

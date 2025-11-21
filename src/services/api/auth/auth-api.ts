@@ -164,6 +164,28 @@ export class AuthApiService {
     await SecureStorage.setItem('user_profile', minimalUser, true);
   }
 
+  // Get active sessions
+  // Per FRONTEND_INTEGRATION_GUIDE.md: GET /auth/sessions
+  static async getSessions(): Promise<Array<{
+    id: string;
+    createdAt: string;
+    expiresAt: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+  }>> {
+    const response = await authClient.get('/auth/sessions');
+    return response.data;
+  }
+
+  // Revoke all sessions
+  // Per FRONTEND_INTEGRATION_GUIDE.md: POST /auth/revoke-all (requires CSRF token)
+  static async revokeAllSessions(): Promise<void> {
+    await authClient.post('/auth/revoke-all');
+    // All sessions revoked - user will need to login again
+    // Clear local storage
+    this.clearAllStorage();
+  }
+
   // Note: Token storage removed - authentication now via httpOnly cookies
   // The backend sets the cookie, browser manages it automatically
 }

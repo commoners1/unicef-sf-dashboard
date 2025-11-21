@@ -20,6 +20,7 @@ const MonitoringPage = lazy(() => import('@/pages/monitoring'));
 const LogsPage = lazy(() => import('@/pages/logs'));
 const AuditLogsPage = lazy(() => import('@/pages/audit-logs'));
 const SalesforceLogsPage = lazy(() => import('@/pages/salesforce-logs'));
+const SalesforceResponsePage = lazy(() => import('@/pages/salesforce-response'));
 const CronJobsPage = lazy(() => import('@/pages/cron-jobs'));
 const ErrorsPage = lazy(() => import('@/pages/errors'));
 const PerformancePage = lazy(() => import('@/pages/performance'));
@@ -128,6 +129,7 @@ const adminRoutes: RouteConfig[] = [
   { path: 'errors', component: ErrorsPage, requiresSuperAdmin: true },
   { path: 'errors/:id', component: ErrorDetailsPage, requiresSuperAdmin: true },
   { path: 'reports', component: ReportsPage, requiresAdmin: true },
+  { path: 'salesforce-response', component: SalesforceResponsePage, requiresAdmin: true },
   { path: 'settings', component: SettingsPage, requiresAdmin: true },
   { path: 'notifications', component: NotificationsPage, requiresAdmin: true },
 ];

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PageLoading } from '@/components/ui/loading';
+import { usePaginatedFetch, useDataFetching } from '@/hooks';
 import { 
   FileText, 
   Download, 
@@ -21,76 +22,61 @@ import {
   Eye,
   Code,
   Server,
-  Hash
+  Hash,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
 import { AuditApiService } from '@/services/api/audit/audit-api';
 
 export default function AuditLogsPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [stats, setStats] = useState<AuditLogStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-  const [filters, setFilters] = useState<AuditLogFilters>({});
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadStats();
-    loadLogs();
-  }, []);
+  // Use the new paginated fetch hook
+  const {
+    data: logs,
+    loading,
+    error: fetchError,
+    pagination,
+    filters,
+    setFilters,
+    handlePageChange,
+    handlePageSizeChange,
+    handleRefresh,
+  } = usePaginatedFetch<AuditLog>({
+    fetchFn: AuditApiService.getAuditLogs,
+    initialFilters: {} as AuditLogFilters,
+    initialPageSize: 10,
+    autoFetch: true,
+    dataKey: 'logs', // API returns 'logs' instead of 'data'
+  });
 
-  const loadStats = async () => {
-    try {
-      setLoading(true);
-      const statsData = await AuditApiService.getAuditStats();
-      setStats(statsData);
-    } catch (err) {
+  // Use the new data fetching hook for stats
+  const {
+    data: stats,
+    fetch: fetchStats,
+  } = useDataFetching<AuditLogStats>({
+    fetchFn: AuditApiService.getAuditStats,
+    autoFetch: true,
+    onError: (err) => {
+      // Don't show error for stats failure, just log it
+      // Stats are not critical for the page to function
       console.error('Error loading stats:', err);
-      setError('Failed to load statistics');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  const loadLogs = async (page = 1, limit = 10, newFilters: AuditLogFilters = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await AuditApiService.getAuditLogs({
-        page,
-        limit,
-        ...newFilters,
-      });
-      
-      setLogs(response.logs);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (err) {
-      console.error('Error loading logs:', err);
-      setError('Failed to load audit logs');
-      setLogs([]);
-      setPagination({
-        current: 1,
-        pageSize: 10,
-        total: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    await Promise.all([loadStats(), loadLogs(pagination.current, pagination.pageSize, filters)]);
+  // Combined refresh handler
+  const handleRefreshAll = async () => {
+    setActionError(null);
+    await Promise.all([handleRefresh(), fetchStats()]);
   };
 
   const handleView = (log: AuditLog) => {
@@ -98,8 +84,45 @@ export default function AuditLogsPage() {
     setIsViewModalOpen(true);
   };
 
-  const handleExport = async (log?: AuditLog) => {
+  // Helper function to clean filters - remove undefined/null/empty values and pagination fields
+  const cleanFilters = (inputFilters: AuditLogFilters): AuditLogFilters => {
+    const cleaned: AuditLogFilters = {};
+    
+    // List of valid filter fields for export (exclude pagination/sorting)
+    if (inputFilters.userId && inputFilters.userId !== '') {
+      cleaned.userId = inputFilters.userId;
+    }
+    if (inputFilters.apiKeyId && inputFilters.apiKeyId !== '') {
+      cleaned.apiKeyId = inputFilters.apiKeyId;
+    }
+    if (inputFilters.action && inputFilters.action !== '') {
+      cleaned.action = inputFilters.action;
+    }
+    if (inputFilters.method && inputFilters.method !== '') {
+      cleaned.method = inputFilters.method;
+    }
+    if (inputFilters.statusCode !== undefined && inputFilters.statusCode !== null) {
+      cleaned.statusCode = inputFilters.statusCode;
+    }
+    if (inputFilters.startDate && inputFilters.startDate !== '') {
+      cleaned.startDate = inputFilters.startDate;
+    }
+    if (inputFilters.endDate && inputFilters.endDate !== '') {
+      cleaned.endDate = inputFilters.endDate;
+    }
+    if (inputFilters.search && inputFilters.search !== '') {
+      cleaned.search = inputFilters.search;
+    }
+    if (inputFilters.isDelivered !== undefined && inputFilters.isDelivered !== null) {
+      cleaned.isDelivered = inputFilters.isDelivered;
+    }
+    
+    return cleaned;
+  };
+
+  const handleExport = async (log?: AuditLog, includeFilters: boolean = false) => {
     try {
+      setActionError(null);
       if (log) {
         const data = JSON.stringify(log, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
@@ -112,16 +135,25 @@ export default function AuditLogsPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else {
+        // If includeFilters is false, use empty filters to export all data
+        // If true, clean filters to remove pagination fields and undefined values
+        const exportFilters = includeFilters 
+          ? cleanFilters(filters as AuditLogFilters)
+          : {} as AuditLogFilters;
+        
         const blob = await AuditApiService.exportAuditLogs({
-          format: 'csv',
-          filters: filters,
-          fields: ['id', 'action', 'method', 'endpoint', 'statusCode', 'user', 'ipAddress', 'createdAt'],
+          format: 'xlsx',
+          filters: exportFilters,
         });
+        
+        const filename = includeFilters
+          ? `audit-logs-filtered-${new Date().toISOString().split('T')[0]}.xlsx`
+          : `audit-logs-all-${new Date().toISOString().split('T')[0]}.xlsx`;
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -129,17 +161,13 @@ export default function AuditLogsPage() {
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Export failed');
+      setActionError('Export failed');
     }
   };
 
-  const handlePageChange = (page: number) => {
-    loadLogs(page, pagination.pageSize, filters);
-  };
-
+  // Handle filter change
   const handleFilterChange = (newFilters: AuditLogFilters) => {
     setFilters(newFilters);
-    loadLogs(1, pagination.pageSize, newFilters);
   };
 
 
@@ -305,7 +333,7 @@ export default function AuditLogsPage() {
   ];
 
   // Show initial loading state when page first loads
-  if (loading && logs.length === 0 && !error) {
+  if (loading && logs.length === 0 && !fetchError) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -329,25 +357,40 @@ export default function AuditLogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+          <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
             <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Export All</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+                <span className="sm:hidden">Export</span>
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+                <Download className="mr-2 h-4 w-4" />
+                Export All
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+                <Filter className="mr-2 h-4 w-4" />
+                Export Filtered
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {error && (
+      {(fetchError || actionError) && (
         <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 sm:p-4">
           <div className="flex">
             <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0 mt-0.5" />
             <div className="ml-2 sm:ml-3 min-w-0 flex-1">
               <h3 className="text-xs sm:text-sm font-medium text-destructive">Error</h3>
-              <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-destructive/90 break-words">{error}</div>
+              <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-destructive/90 break-words">{fetchError || actionError}</div>
             </div>
           </div>
         </div>
@@ -420,7 +463,13 @@ export default function AuditLogsPage() {
           showSizeChanger: true,
           pageSizeOptions: [5, 10, 20, 50],
         }}
-        onPaginationChange={handlePageChange}
+        onPaginationChange={(page, pageSize) => {
+          if (pageSize && pageSize !== pagination.pageSize) {
+            handlePageSizeChange(pageSize);
+          } else {
+            handlePageChange(page);
+          }
+        }}
         onSort={(field, direction) => {
           const newFilters = { ...filters, sortBy: field, sortOrder: direction };
           handleFilterChange(newFilters);
@@ -428,8 +477,9 @@ export default function AuditLogsPage() {
         onFilter={handleFilterChange}
         onSearch={(searchTerm) => {
           const newFilters = { ...filters, search: searchTerm };
-          handleFilterChange(newFilters);
+          setFilters(newFilters as AuditLogFilters);
         }}
+        searchValue={filters?.search || ''}
         searchPlaceholder="Search logs by action, endpoint, user, or IP..."
         actions={{
           view: handleView,

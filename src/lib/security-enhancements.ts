@@ -117,50 +117,86 @@ export class InputValidator {
 
 /**
  * CSRF Protection
+ * 
+ * Per FRONTEND_INTEGRATION_GUIDE.md:
+ * - CSRF tokens are set by the backend in cookies (csrf-token)
+ * - Tokens can also be read from response headers (X-CSRF-Token)
+ * - Client should read from cookie first, then from response headers
  */
 export class CSRFProtection {
-  private static tokenKey = 'csrf_token';
-  private static tokenExpiry = 24 * 60 * 60 * 1000; // 24 hours
+  private static tokenKey = 'csrf_token'; // For caching in sessionStorage
+  private static cookieName = 'csrf-token'; // Backend cookie name
 
   /**
-   * Gets or generates CSRF token
+   * Gets CSRF token from cookie (preferred) or cached value
+   * Per FRONTEND_INTEGRATION_GUIDE.md: Read from cookie first
    */
-  static getToken(): string {
-    const stored = sessionStorage.getItem(this.tokenKey);
-    const storedData = stored ? JSON.parse(stored) : null;
-    
-    // Check if token exists and is not expired
-    if (storedData && storedData.expiry > Date.now()) {
-      return storedData.token;
+  static getToken(): string | null {
+    // Method 1: Read from cookie (recommended per guide)
+    const tokenFromCookie = this.getCsrfTokenFromCookie();
+    if (tokenFromCookie) {
+      // Cache it for quick access
+      sessionStorage.setItem(this.tokenKey, tokenFromCookie);
+      return tokenFromCookie;
     }
-    
-    // Generate new token
-    const token = SecurityUtils.generateCSRFToken();
-    const expiry = Date.now() + this.tokenExpiry;
-    
-    sessionStorage.setItem(this.tokenKey, JSON.stringify({ token, expiry }));
-    return token;
+
+    // Method 2: Use cached value if available
+    const cached = sessionStorage.getItem(this.tokenKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Token not available - will be set by backend on next request
+    return null;
   }
 
   /**
-   * Validates CSRF token
+   * Reads CSRF token from cookie
+   * Per FRONTEND_INTEGRATION_GUIDE.md: Extract from csrf-token cookie
+   */
+  private static getCsrfTokenFromCookie(): string | null {
+    if (typeof document === 'undefined') return null;
+    
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === this.cookieName) {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Updates CSRF token from response header
+   * Called by API client when X-CSRF-Token header is received
+   */
+  static updateTokenFromHeader(token: string | null): void {
+    if (token) {
+      sessionStorage.setItem(this.tokenKey, token);
+    }
+  }
+
+  /**
+   * Validates CSRF token (for client-side validation if needed)
    */
   static validateToken(token: string): boolean {
-    const stored = sessionStorage.getItem(this.tokenKey);
-    if (!stored) return false;
-    
-    const storedData = JSON.parse(stored);
-    return SecurityUtils.validateCSRFToken(token, storedData.token);
+    const stored = this.getToken();
+    return stored !== null && stored === token;
   }
 
   /**
    * Adds CSRF token to request headers
    */
   static addTokenToHeaders(headers: Record<string, string>): Record<string, string> {
-    return {
-      ...headers,
-      'X-CSRF-Token': this.getToken(),
-    };
+    const token = this.getToken();
+    if (token) {
+      return {
+        ...headers,
+        'X-CSRF-Token': token,
+      };
+    }
+    return headers;
   }
 }
 
@@ -503,8 +539,9 @@ export class SecurityLogger {
   /**
    * Logs authentication events
    */
-  static logAuthEvent(event: 'login' | 'logout' | 'failed_login' | 'token_refresh', details: Record<string, any> = {}): void {
-    this.log(`AUTH_${event.toUpperCase()}`, details, event === 'failed_login' ? 'high' : 'medium');
+  static logAuthEvent(event: 'login' | 'logout' | 'failed_login' | 'token_refresh' | 'session_expired', details: Record<string, any> = {}): void {
+    const highSeverityEvents: Array<'failed_login' | 'session_expired'> = ['failed_login', 'session_expired'];
+    this.log(`AUTH_${event.toUpperCase()}`, details, highSeverityEvents.includes(event as any) ? 'high' : 'medium');
   }
 }
 

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { PageLoading } from '@/components/ui/loading';
+import { usePaginatedFetch } from '@/hooks';
 import { QueueApiService, type Job, type JobFilters } from '@/services/api/queue/queue-api';
+import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
 import { 
   FileText, 
   Clock, 
@@ -12,67 +14,38 @@ import {
   XCircle, 
   AlertTriangle,
   RefreshCw,
-  Download
+  Download,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Use the new paginated fetch hook
+  const {
+    data: jobs,
+    loading,
+    error: fetchError,
+    pagination,
+    filters,
+    setFilters,
+    handlePageChange,
+    handlePageSizeChange,
+    handleRefresh,
+  } = usePaginatedFetch<Job>({
+    fetchFn: QueueApiService.getJobs,
+    initialFilters: {} as JobFilters,
+    initialPageSize: 10,
+    autoFetch: true,
+    dataKey: 'data',
   });
-  const [filters, setFilters] = useState<JobFilters>({});
-
-  // Load data on component mount
-  useEffect(() => {
-    loadJobs();
-  }, []);
-
-  // Load jobs from API
-  const loadJobs = async (page = 1, limit = 10, newFilters: JobFilters = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await QueueApiService.getJobs({
-        page,
-        limit,
-        ...newFilters,
-      });
-      
-      // Check if data is an array and has the expected structure
-      if (!Array.isArray(response.data)) {
-        console.error('Response data is not an array:', response.data);
-      }
-      
-      setJobs(response.data || []);
-      setPagination({
-        current: Number(response.pagination.page) || 1,
-        pageSize: Number(response.pagination.limit) || 10,
-        total: Number(response.pagination.total) || 0,
-      });
-    } catch (err) {
-      console.error('Error loading jobs:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to load jobs: ${errorMessage}`);
-      setJobs([]);
-      setPagination({
-        current: 1,
-        pageSize: 10,
-        total: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper functions
-  const handleRefresh = async () => {
-    await loadJobs(pagination.current, pagination.pageSize, filters);
-  };
 
   const handleView = (_job: Job) => {
     // TODO: Open job details modal
@@ -80,69 +53,84 @@ export default function JobsPage() {
 
   const handleRetry = async (job: Job) => {
     try {
+      setActionError(null);
       await QueueApiService.retryJob(job.id);
-      await loadJobs(pagination.current, pagination.pageSize, filters);
+      await handleRefresh(); // Refresh the list after retry
     } catch (err) {
       console.error('Retry failed:', err);
-      setError('Failed to retry job');
+      setActionError(getApiErrorMessage(err));
     }
   };
 
   const handleRemove = async (job: Job) => {
     try {
+      setActionError(null);
       await QueueApiService.removeJob(job.id);
-      await loadJobs(pagination.current, pagination.pageSize, filters);
+      await handleRefresh(); // Refresh the list after removal
     } catch (err) {
       console.error('Remove failed:', err);
-      setError('Failed to remove job');
+      setActionError(getApiErrorMessage(err));
     }
   };
 
-  const handleExport = async (job?: Job) => {
+  // Helper function to clean filters - remove undefined/null/empty values and pagination fields
+  const cleanJobFilters = (inputFilters: JobFilters): JobFilters => {
+    const cleaned: JobFilters = {};
+    
+    // List of valid filter fields for export (exclude pagination/sorting)
+    if (inputFilters.queue && inputFilters.queue !== '') {
+      cleaned.queue = inputFilters.queue;
+    }
+    if (inputFilters.status && inputFilters.status !== '') {
+      cleaned.status = inputFilters.status;
+    }
+    if (inputFilters.search && inputFilters.search !== '') {
+      cleaned.search = inputFilters.search;
+    }
+    if (inputFilters.startDate && inputFilters.startDate !== '') {
+      cleaned.startDate = inputFilters.startDate;
+    }
+    if (inputFilters.endDate && inputFilters.endDate !== '') {
+      cleaned.endDate = inputFilters.endDate;
+    }
+    
+    return cleaned;
+  };
+
+  const handleExport = async (job?: Job, includeFilters: boolean = false) => {
     try {
+      setActionError(null);
       if (job) {
-        const data = JSON.stringify(job, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `job-${job.id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        downloadJSON(job, `job-${job.id}`);
       } else {
-        const blob = await QueueApiService.exportJobs(filters, 'csv');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `jobs-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // If includeFilters is false, use empty filters to export all data
+        // If true, clean filters to remove pagination fields and undefined values
+        const exportFilters = includeFilters 
+          ? cleanJobFilters(filters as JobFilters)
+          : {} as JobFilters;
+        
+        const blob = await QueueApiService.exportJobs(exportFilters, 'xlsx');
+        
+        const filename = includeFilters
+          ? `jobs-filtered-${formatDateForFilename()}.xlsx`
+          : `jobs-all-${formatDateForFilename()}.xlsx`;
+        downloadBlob(blob, filename);
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Export failed');
+      setActionError(getApiErrorMessage(err));
     }
-  };
-
-  // Handle pagination change
-  const handlePageChange = (page: number) => {
-    loadJobs(page, pagination.pageSize, filters);
   };
 
   // Handle filter change
   const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-    loadJobs(1, pagination.pageSize, newFilters);
+    setFilters(newFilters as JobFilters);
   };
 
   // Handle search
   const handleSearch = (searchTerm: string) => {
     const newFilters = { ...filters, search: searchTerm };
-    handleFilterChange(newFilters);
+    setFilters(newFilters as JobFilters);
   };
 
   const columns: Column<Job>[] = [
@@ -319,21 +307,36 @@ export default function JobsPage() {
             <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button size="sm" onClick={() => handleExport()} className="flex-1 sm:flex-initial min-w-[100px]">
-            <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Export All</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
+                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+                <span className="sm:hidden">Export</span>
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+                <Download className="mr-2 h-4 w-4" />
+                Export All
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+                <Filter className="mr-2 h-4 w-4" />
+                Export Filtered
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {error && (
+      {(fetchError || actionError) && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <AlertTriangle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">{error}</div>
+              <div className="mt-2 text-sm text-red-700">{fetchError || actionError}</div>
             </div>
           </div>
         </div>
@@ -400,6 +403,7 @@ export default function JobsPage() {
         data={jobs}
         columns={columns}
         loading={loading}
+        serverSidePagination={true}
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,
@@ -407,12 +411,19 @@ export default function JobsPage() {
           showSizeChanger: true,
           pageSizeOptions: [5, 10, 20, 50],
         }}
-        onPaginationChange={handlePageChange}
+        onPaginationChange={(page, pageSize) => {
+          if (pageSize && pageSize !== pagination.pageSize) {
+            handlePageSizeChange(pageSize);
+          } else {
+            handlePageChange(page);
+          }
+        }}
         onSort={(_field, _direction) => {
           // TODO: Implement sorting
         }}
         onFilter={handleFilterChange}
         onSearch={handleSearch}
+        searchValue={filters?.search || ''}
         searchPlaceholder="Search jobs by name, type, or status..."
         actions={{
           view: handleView,
@@ -422,7 +433,6 @@ export default function JobsPage() {
         }}
         rowKey="id"
         emptyMessage="No jobs found"
-        serverSidePagination={true}
       />
     </div>
   );

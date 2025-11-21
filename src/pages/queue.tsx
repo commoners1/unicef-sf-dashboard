@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PageLoading } from '@/components/ui/loading';
+import { useDataFetching, useAutoRefresh } from '@/hooks';
 import { QueueApiService } from '@/services/api/queue/queue-api';
 import type { QueueHealth, DetailedStats } from '@/services/api/queue/queue-api';
 import { ExportApiService } from '@/services/api/export/export-api';
@@ -18,40 +18,37 @@ import {
 } from 'lucide-react';
 
 export function QueuePage() {
-  const [queueHealth, setQueueHealth] = useState<QueueHealth | null>(null);
-  const [detailedStats, setDetailedStats] = useState<DetailedStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Use the new data fetching hooks
+  const {
+    data: queueHealth,
+    loading: isLoadingHealth,
+    error: healthError,
+    fetch: fetchHealth,
+  } = useDataFetching<QueueHealth>({
+    fetchFn: QueueApiService.getQueueHealth,
+    autoFetch: true,
+  });
 
-  // Load queue data
+  const {
+    data: detailedStats,
+    loading: isLoadingStats,
+    error: statsError,
+    fetch: fetchStats,
+  } = useDataFetching<DetailedStats>({
+    fetchFn: QueueApiService.getDetailedStats,
+    autoFetch: true,
+  });
+
+  const isLoading = isLoadingHealth || isLoadingStats;
+  const error = healthError || statsError;
+
+  // Combined refresh handler
   const loadQueueData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const [health, stats] = await Promise.all([
-        QueueApiService.getQueueHealth(),
-        QueueApiService.getDetailedStats(),
-      ]);
-      setQueueHealth(health);
-      setDetailedStats(stats);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load queue data');
-      console.error('Error loading queue data:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    await Promise.all([fetchHealth(), fetchStats()]);
   };
 
-  // Load data on component mount
-  useEffect(() => {
-    loadQueueData();
-  }, []);
-
   // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(loadQueueData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  useAutoRefresh(loadQueueData, { interval: 30000 });
   const handlePauseQueue = (_queueName: string) => {
     // TODO: Implement queue pause functionality
   };

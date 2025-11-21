@@ -1,64 +1,230 @@
 import * as React from 'react';
-// import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  isToday,
+  format,
+  addMonths,
+  subMonths,
+} from 'date-fns';
 
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export interface CalendarProps {
+  mode?: 'single' | 'range' | 'multiple';
+  selected?: Date | Date[] | { from?: Date; to?: Date };
+  onSelect?: (date: Date | undefined) => void;
+  disabled?: (date: Date) => boolean;
+  initialFocus?: boolean;
+  showOutsideDays?: boolean;
+  className?: string;
+  month?: Date;
+  onMonthChange?: (date: Date) => void;
+}
 
-function Calendar({
-  className,
-  classNames,
+const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+export function Calendar({
+  mode = 'single',
+  selected,
+  onSelect,
+  disabled,
+  initialFocus = false,
   showOutsideDays = true,
-  ...props
+  className,
+  month: controlledMonth,
+  onMonthChange,
 }: CalendarProps) {
+  const [internalMonth, setInternalMonth] = React.useState<Date>(
+    controlledMonth || new Date()
+  );
+
+  const month = controlledMonth || internalMonth;
+  const setMonth = onMonthChange || setInternalMonth;
+
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+  const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  
+  // Group days into weeks
+  const weeks: Date[][] = [];
+  for (let i = 0; i < allDays.length; i += 7) {
+    weeks.push(allDays.slice(i, i + 7));
+  }
+
+  const handleDateClick = (date: Date) => {
+    if (disabled?.(date)) return;
+    if (mode === 'single' && onSelect) {
+      // If clicking the same date, deselect it
+      if (selected instanceof Date && isSameDay(date, selected)) {
+        onSelect(undefined);
+      } else {
+        onSelect(date);
+      }
+    }
+  };
+
+  const handlePrevMonth = () => {
+    setMonth(subMonths(month, 1));
+  };
+
+  const handleNextMonth = () => {
+    setMonth(addMonths(month, 1));
+  };
+
+  const isSelected = (date: Date): boolean => {
+    if (!selected) return false;
+    if (mode === 'single') {
+      return selected instanceof Date && isSameDay(date, selected);
+    }
+    if (Array.isArray(selected)) {
+      return selected.some((d) => isSameDay(date, d));
+    }
+    if (typeof selected === 'object' && 'from' in selected) {
+      return !!(
+        (selected.from && isSameDay(date, selected.from)) ||
+        (selected.to && isSameDay(date, selected.to))
+      );
+    }
+    return false;
+  };
+
+  const isInRange = (date: Date): boolean => {
+    if (mode !== 'range' || !selected || typeof selected !== 'object' || !('from' in selected))
+      return false;
+    if (!selected.from || !selected.to) return false;
+    const fromTime = selected.from.getTime();
+    const toTime = selected.to.getTime();
+    const dateTime = date.getTime();
+    return dateTime >= fromTime && dateTime <= toTime;
+  };
+
+  const calendarRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (initialFocus && calendarRef.current) {
+      calendarRef.current.focus();
+    }
+  }, [initialFocus]);
+
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
+    <div
+      ref={calendarRef}
       className={cn('p-3', className)}
-      classNames={{
-        months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-        month: 'space-y-4',
-        caption: 'flex justify-center pt-1 relative items-center',
-        caption_label: 'text-sm font-medium',
-        nav: 'space-x-1 flex items-center',
-        nav_button: cn(
-          buttonVariants({ variant: 'outline' }),
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'
-        ),
-        nav_button_previous: 'absolute left-1',
-        nav_button_next: 'absolute right-1',
-        table: 'w-full border-collapse space-y-1',
-        head_row: 'flex',
-        head_cell:
-          'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
-        row: 'flex w-full mt-2',
-        cell: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
-        day: cn(
-          buttonVariants({ variant: 'ghost' }),
-          'h-9 w-9 p-0 font-normal aria-selected:opacity-100'
-        ),
-        day_range_end: 'day-range-end',
-        day_selected:
-          'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
-        day_today: 'bg-accent text-accent-foreground',
-        day_outside:
-          'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
-        day_disabled: 'text-muted-foreground opacity-50',
-        day_range_middle:
-          'aria-selected:bg-accent aria-selected:text-accent-foreground',
-        day_hidden: 'invisible',
-        ...classNames,
-      }}
-      components={{
-        // IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        // IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
-      }}
-      {...props}
-    />
+      tabIndex={initialFocus ? 0 : -1}
+    >
+      <div className="flex flex-col space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'
+            )}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Previous month</span>
+          </button>
+          <div className="text-sm font-medium">
+            {format(month, 'MMMM yyyy')}
+          </div>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'
+            )}
+          >
+            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Next month</span>
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="space-y-2">
+          {/* Day headers */}
+          <div className="flex">
+            {WEEK_DAYS.map((day) => (
+              <div
+                key={day}
+                className="text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar days */}
+          <div className="w-full border-collapse space-y-1">
+            {weeks.map((week, weekIndex) => (
+              <div key={weekIndex} className="flex w-full mt-2">
+                {week.map((date) => {
+                  const isCurrentMonth = isSameMonth(date, month);
+                  const isSelectedDate = isSelected(date);
+                  const isTodayDate = isToday(date);
+                  const isOutsideDay = !isCurrentMonth;
+                  const isDisabledDate = disabled?.(date) || false;
+                  const isInDateRange = isInRange(date);
+
+                  if (!showOutsideDays && isOutsideDay) {
+                    return (
+                      <div key={date.toISOString()} className="h-9 w-9" />
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={date.toISOString()}
+                      className={cn(
+                        'h-9 w-9 text-center text-sm p-0 relative',
+                        isInDateRange && 'bg-accent',
+                        isSelectedDate && !isInDateRange && 'bg-accent'
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleDateClick(date)}
+                        disabled={isDisabledDate}
+                        className={cn(
+                          buttonVariants({ variant: 'ghost' }),
+                          'h-9 w-9 p-0 font-normal',
+                          !isCurrentMonth && showOutsideDays && 'text-muted-foreground opacity-50',
+                          isSelectedDate &&
+                            'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-semibold',
+                          !isSelectedDate &&
+                            isTodayDate &&
+                            'bg-accent text-accent-foreground font-semibold',
+                          isDisabledDate && 'text-muted-foreground opacity-50 cursor-not-allowed',
+                          !isDisabledDate &&
+                            !isSelectedDate &&
+                            !isTodayDate &&
+                            'hover:bg-accent hover:text-accent-foreground',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                        )}
+                      >
+                        {format(date, 'd')}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
-Calendar.displayName = 'Calendar';
-
-export { Calendar };

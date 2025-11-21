@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,49 +10,46 @@ import {
   Activity,
   Download
 } from 'lucide-react';
-import { QueueApiService, type QueueHealth, type Job } from '@/services/api/queue/queue-api';
+import { useDataFetching } from '@/hooks';
+import { QueueApiService, type QueueHealth } from '@/services/api/queue/queue-api';
 import { toast } from 'sonner';
 
 export default function QueuePageSimple() {
-  const [queueHealth, setQueueHealth] = useState<QueueHealth | null>(null);
-  const [recentJobs, setRecentJobs] = useState<Job[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the new data fetching hooks
+  const {
+    data: queueHealth,
+    loading: isLoadingHealth,
+    error: healthError,
+    fetch: fetchHealth,
+  } = useDataFetching<QueueHealth>({
+    fetchFn: QueueApiService.getQueueHealth,
+    autoFetch: true,
+  });
 
-  useEffect(() => {
-    loadQueueData();
-  }, []);
+  const {
+    data: jobsResponse,
+    loading: isLoadingJobs,
+    error: jobsError,
+    fetch: fetchJobs,
+  } = useDataFetching({
+    fetchFn: async () => QueueApiService.getJobs({ limit: 10, page: 1 }),
+    autoFetch: true,
+  });
 
-  const loadQueueData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const [health, jobs] = await Promise.all([
-        QueueApiService.getQueueHealth(),
-        QueueApiService.getJobs({ limit: 10, page: 1 })
-      ]);
+  const isLoading = isLoadingHealth || isLoadingJobs;
+  const error = healthError || jobsError;
+  const recentJobs = jobsResponse?.data || [];
 
-      setQueueHealth(health);
-      setRecentJobs(jobs.data);
-    } catch (error) {
-      console.error('Failed to load queue data:', error);
-      setError('Failed to load queue data');
-      toast.error('Failed to load queue data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    loadQueueData();
+  // Combined refresh handler
+  const handleRefresh = async () => {
+    await Promise.all([fetchHealth(), fetchJobs()]);
   };
 
   const handleForceFlush = async () => {
     try {
       await QueueApiService.forceFlushBatch();
       toast.success('Batch flush completed');
-      loadQueueData(); // Refresh data
+      await handleRefresh(); // Refresh data
     } catch (error) {
       console.error('Failed to force flush:', error);
       toast.error('Failed to force flush batch');

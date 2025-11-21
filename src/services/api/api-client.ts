@@ -50,12 +50,20 @@ export function createApiClient(): AxiosInstance {
       if (shouldAddCSRF) {
         try {
           const csrfToken = CSRFProtection.getToken();
-          if (config.headers) {
+          if (csrfToken && config.headers) {
             config.headers['X-CSRF-Token'] = csrfToken;
+          } else {
+            // CSRF token not available - need to get it first
+            // This can happen on first request or if cookie was cleared
+            // We'll let the request fail with 403, then the error handler will retry
+            SecurityLogger.log('CSRF_TOKEN_NOT_AVAILABLE', { 
+              url: config.url,
+              method: config.method 
+            }, 'medium');
           }
         } catch (error) {
-          // If CSRF token generation fails, log but don't block the request
-          SecurityLogger.log('CSRF_TOKEN_GENERATION_FAILED', { error }, 'low');
+          // If CSRF token extraction fails, log but don't block the request
+          SecurityLogger.log('CSRF_TOKEN_EXTRACTION_FAILED', { error }, 'low');
         }
       }
 
@@ -75,22 +83,90 @@ export function createApiClient(): AxiosInstance {
     }
   );
 
-  // Add response interceptor for error handling
+  // Add response interceptor for error handling and CSRF token extraction
   apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      // Log security-relevant errors
-      if (error.response?.status === 401) {
-        SecurityLogger.logAuthEvent('failed_login', { reason: 'unauthorized' });
-        // Handle unauthorized - clear user profile
-        // httpOnly cookies are managed by the browser, no need to clear them manually
-        // AuthGuard will handle the redirect using React Router (respects basename)
-        // Use SecureStorage for secure removal
-        SecureStorage.removeItem('user_profile');
+    (response) => {
+      // Extract CSRF token from response header (per FRONTEND_INTEGRATION_GUIDE.md)
+      const csrfToken = response.headers['x-csrf-token'];
+      if (csrfToken) {
+        CSRFProtection.updateTokenFromHeader(csrfToken);
+      }
+      return response;
+    },
+    async (error) => {
+      const originalRequest = error.config;
+
+      // Handle 401 Unauthorized - Automatic token refresh (per FRONTEND_INTEGRATION_GUIDE.md)
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        // Skip refresh for login endpoint to avoid infinite loop
+        if (originalRequest.url?.includes('/auth/login')) {
+          SecurityLogger.logAuthEvent('failed_login', { reason: 'unauthorized' });
+          SecureStorage.removeItem('user_profile');
+          return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+
+        try {
+          // Try to refresh token
+          const refreshResponse = await apiClient.post('/auth/refresh');
+          
+          // Update CSRF token if provided in refresh response
+          const newCsrfToken = refreshResponse.headers['x-csrf-token'];
+          if (newCsrfToken) {
+            CSRFProtection.updateTokenFromHeader(newCsrfToken);
+          }
+
+          // Retry original request with new token
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed - session expired, redirect to login
+          SecurityLogger.logAuthEvent('session_expired', { reason: 'refresh_failed' });
+          SecureStorage.removeItem('user_profile');
+          
+          // Redirect to login (AuthGuard will handle this, but we can also do it here)
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          
+          return Promise.reject(refreshError);
+        }
       } else if (error.response?.status === 403) {
+        const errorMessage = error.response?.data?.message || '';
+        
+        // CSRF token missing - try to get it first, then retry
+        if (errorMessage.includes('CSRF token') && !originalRequest._csrfRetry) {
+          originalRequest._csrfRetry = true;
+          
+          try {
+            // Make a GET request to get CSRF token (GET requests don't require CSRF)
+            const healthResponse = await apiClient.get('/health');
+            const csrfToken = healthResponse.headers['x-csrf-token'];
+            
+            if (csrfToken) {
+              CSRFProtection.updateTokenFromHeader(csrfToken);
+              
+              // Retry original request with CSRF token
+              if (originalRequest.headers) {
+                originalRequest.headers['X-CSRF-Token'] = csrfToken;
+              }
+              
+              return apiClient(originalRequest);
+            }
+          } catch (csrfError) {
+            // Failed to get CSRF token - log and reject
+            SecurityLogger.log('CSRF_TOKEN_FETCH_FAILED', { 
+              error: csrfError,
+              originalUrl: originalRequest.url 
+            }, 'high');
+          }
+        }
+        
+        // Other 403 errors or CSRF retry failed
         SecurityLogger.logSuspiciousActivity('FORBIDDEN_ACCESS_ATTEMPT', {
           url: error.config?.url,
           method: error.config?.method,
+          message: errorMessage,
         });
       } else if (error.response?.status === 429) {
         SecurityLogger.logSuspiciousActivity('RATE_LIMIT_EXCEEDED_SERVER', {

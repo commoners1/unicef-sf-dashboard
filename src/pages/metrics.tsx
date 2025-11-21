@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAutoRefresh } from '@/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -62,10 +63,7 @@ export default function MetricsPage() {
   }, []);
 
   // Auto-refresh every 60 seconds
-  useEffect(() => {
-    const interval = setInterval(loadData, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  useAutoRefresh(loadData, { interval: 60000 });
 
   // Calculate derived metrics
   const calculatedMetrics = {

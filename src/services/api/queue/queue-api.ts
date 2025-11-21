@@ -202,7 +202,7 @@ export class QueueApiService {
   }
 
   // Export jobs
-  static async exportJobs(filters: JobFilters, format: 'csv' | 'json' = 'csv'): Promise<Blob> {
+  static async exportJobs(filters: JobFilters, format: 'csv' | 'json' | 'xlsx' = 'csv'): Promise<Blob> {
     const response = await apiClient.post('/queue/export', {
       filters,
       format,

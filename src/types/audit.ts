@@ -16,9 +16,12 @@ export interface AuditLog {
   endpoint: string;
   method: string;
   type?: string;
+  referenceId?: string;
+  salesforceId?: string;
   requestData?: Record<string, any>;
   responseData?: Record<string, any>;
   statusCode: number;
+  statusMessage?: string;
   ipAddress: string;
   userAgent?: string;
   duration?: number;
@@ -66,5 +69,5 @@ export interface AuditLogStats {
 export interface AuditLogExportOptions {
   format: 'csv' | 'json' | 'xlsx';
   filters: AuditLogFilters;
-  fields: string[];
+  fields?: string[]; // Optional - not all export endpoints support field selection
 }

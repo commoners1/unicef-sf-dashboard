@@ -41,7 +41,8 @@ export const environments: EnvironmentConfig[] = [
     apiUrl: 'http://localhost:3000',
     wsUrl: 'ws://localhost:3000',
     isProduction: false,
-    enableCSRF: false, // Disable CSRF for localhost (CORS may not be configured)
+    // CSRF is enabled - backend requires CSRF tokens for state-changing operations
+    // The API client will automatically fetch and include CSRF tokens
     features: {
       realTimeLogs: true,
       advancedAnalytics: false,
@@ -55,4 +56,4 @@ export const environments: EnvironmentConfig[] = [
   },
 ];
 
-export const defaultEnvironment = environments[1];
+export const defaultEnvironment = environments[2];

@@ -34,6 +34,7 @@ export const ROUTES = {
   REPORTS: '/reports',
   SETTINGS: '/settings',
   NOTIFICATIONS: '/notifications',
+  SALESFORCE_RESPONSE: '/salesforce-response',
 } as const;
 
 /**
@@ -59,6 +60,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/errors': 'Error Tracking',
   '/performance': 'Performance',
   '/reports': 'Reports',
+  '/salesforce-response': 'Salesforce Response',
   '/settings': 'Settings',
   '/notifications': 'Notifications',
   '/login': 'Login',

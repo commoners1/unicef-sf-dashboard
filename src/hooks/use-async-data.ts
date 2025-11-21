@@ -13,16 +13,6 @@ interface UseAsyncDataReturn<T> {
   reset: () => void;
 }
 
-/**
- * Reusable hook for handling async data fetching with loading and error states
- * 
- * @example
- * const { data, loading, error, execute } = useAsyncData<User[]>();
- * 
- * useEffect(() => {
- *   execute(() => UserApiService.getUsers());
- * }, []);
- */
 export function useAsyncData<T = any>(
   options: UseAsyncDataOptions<T> = {}
 ): UseAsyncDataReturn<T> {
