@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,9 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PageLoading } from '@/components/ui/loading';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePaginatedFetch, useDataFetching } from '@/hooks';
 import { 
   FileText, 
@@ -15,10 +18,10 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
-  User,
+  User as UserIcon,
   Globe,
   Monitor,
-  Calendar,
+  Calendar as CalendarIcon,
   Eye,
   Code,
   Server,
@@ -26,6 +29,7 @@ import {
   ChevronDown,
   Filter,
 } from 'lucide-react';
+import { format, addDays, startOfDay, isAfter, isBefore } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +44,57 @@ export default function AuditLogsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Filter state
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [userFilter, setUserFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deliveredFilter, setDeliveredFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  // Build filters function that includes date range and other filters
+  const buildFilters = useCallback((): AuditLogFilters => {
+    const newFilters: AuditLogFilters = {};
+    
+    // Action filter
+    if (actionFilter && actionFilter !== 'all') {
+      newFilters.action = actionFilter;
+    }
+    
+    // Status filter - note: backend may need to handle ranges
+    // For now, we'll pass the filter and let backend handle it
+    if (statusFilter && statusFilter !== 'all') {
+      if (statusFilter === 'success') {
+        // Note: Backend needs to handle 2xx range
+        // For now, use 200 as example - backend should filter 200-299
+        newFilters.statusCode = 200;
+      } else if (statusFilter === 'client-error') {
+        // Backend should filter 400-499
+        newFilters.statusCode = 400;
+      } else if (statusFilter === 'server-error') {
+        // Backend should filter 500-599
+        newFilters.statusCode = 500;
+      }
+    }
+    
+    // Delivered filter
+    if (deliveredFilter && deliveredFilter !== 'all') {
+      // Convert string to boolean
+      newFilters.isDelivered = deliveredFilter === 'delivered' ? true : false;
+    }
+    
+    // Date filters
+    if (startDate) {
+      newFilters.startDate = format(startDate, 'yyyy-MM-dd');
+    }
+    if (endDate) {
+      const endDatePlusOne = addDays(endDate, 1);
+      newFilters.endDate = format(endDatePlusOne, 'yyyy-MM-dd');
+    }
+    
+    return newFilters;
+  }, [actionFilter, statusFilter, deliveredFilter, startDate, endDate]);
+
   // Use the new paginated fetch hook
   const {
     data: logs,
@@ -47,17 +102,48 @@ export default function AuditLogsPage() {
     error: fetchError,
     pagination,
     filters,
-    setFilters,
+    setFilters: setBaseFilters,
     handlePageChange,
     handlePageSizeChange,
     handleRefresh,
   } = usePaginatedFetch<AuditLog>({
-    fetchFn: AuditApiService.getAuditLogs,
+    fetchFn: useCallback(async (filters) => {
+      const dateFilters = buildFilters();
+      return AuditApiService.getAuditLogs({
+        ...filters,
+        ...dateFilters,
+      });
+    }, [buildFilters]),
     initialFilters: {} as AuditLogFilters,
     initialPageSize: 10,
     autoFetch: true,
     dataKey: 'logs', // API returns 'logs' instead of 'data'
   });
+
+  // Apply client-side filter for User (since we can't filter by userId in buildFilters)
+  const filteredLogs = useMemo(() => {
+    if (userFilter === 'all') {
+      return logs;
+    }
+
+    let result = [...logs];
+
+    if (userFilter === 'system') {
+      // Filter for logs without userId (system logs)
+      result = result.filter(log => !log.userId && !log.user);
+    } else {
+      // Filter by user name (client-side)
+      result = result.filter(log => log.user?.name === userFilter);
+    }
+
+    return result;
+  }, [logs, userFilter]);
+
+  // Update filters when date range or other filters change (except userFilter which is client-side)
+  useEffect(() => {
+    handleRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, actionFilter, statusFilter, deliveredFilter]);
 
   // Use the new data fetching hook for stats
   const {
@@ -83,6 +169,23 @@ export default function AuditLogsPage() {
     setSelectedLog(log);
     setIsViewModalOpen(true);
   };
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+    // Refetch will be triggered by useEffect when dates change
+  };
+
+  const clearFilters = useCallback(() => {
+    setActionFilter('all');
+    setUserFilter('all');
+    setStatusFilter('all');
+    setDeliveredFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setBaseFilters({});
+    // State updates are async, so useEffect will handle the refresh
+  }, [setBaseFilters]);
 
   // Helper function to clean filters - remove undefined/null/empty values and pagination fields
   const cleanFilters = (inputFilters: AuditLogFilters): AuditLogFilters => {
@@ -167,36 +270,34 @@ export default function AuditLogsPage() {
 
   // Handle filter change
   const handleFilterChange = (newFilters: AuditLogFilters) => {
-    setFilters(newFilters);
+    // If filters are cleared (empty object or all values are empty), also clear our custom filter state
+    const isEmpty = Object.keys(newFilters).length === 0 || 
+                    Object.values(newFilters).every(v => v === undefined || v === '' || v === null || (typeof v === 'object' && Object.keys(v).length === 0));
+    if (isEmpty) {
+      clearFilters();
+    } else {
+      setBaseFilters(newFilters);
+    }
   };
 
 
   const columns: Column<AuditLog>[] = [
-    {
-      key: 'action',
-      title: 'Action',
-      dataIndex: 'action',
-      sortable: true,
-      filterable: true,
-      mobilePriority: 'primary',
-      filterOptions: [
-        { label: 'All Actions', value: '' },
-        { label: 'API Call', value: 'API_CALL' },
-        { label: 'Job Started', value: 'JOB_STARTED' },
-        { label: 'Job Completed', value: 'JOB_COMPLETED' },
-        { label: 'Cron Job', value: 'CRON_JOB' },
-        { label: 'Queue Job Added', value: 'QUEUE_JOB_ADDED' },
-        { label: 'System Maintenance', value: 'SYSTEM_MAINTENANCE' },
-      ],
-      render: (_, log) => (
-        <div className="flex items-center space-x-2">
-          <Monitor className="h-4 w-4 text-muted-foreground" />
-          <Badge variant="outline" className="font-mono text-xs">
-            {log.action}
-          </Badge>
-        </div>
-      ),
-    },
+      {
+        key: 'action',
+        title: 'Action',
+        dataIndex: 'action',
+        sortable: true,
+        filterable: true,
+        mobilePriority: 'primary',
+        render: (_, log) => (
+          <div className="flex items-center space-x-2">
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+            <Badge variant="outline" className="font-mono text-xs">
+              {log.action}
+            </Badge>
+          </div>
+        ),
+      },
     {
       key: 'endpoint',
       title: 'Endpoint',
@@ -214,63 +315,49 @@ export default function AuditLogsPage() {
         </div>
       ),
     },
-    {
-      key: 'user',
-      title: 'User',
-      dataIndex: 'user',
-      sortable: true,
-      filterable: true,
-      mobilePriority: 'primary',
-      filterOptions: [
-        { label: 'All Users', value: '' },
-        ...Array.from(new Set(logs.map(l => l.user?.name).filter(Boolean))).map(name => ({
-          label: name!,
-          value: name!,
-        })),
-        { label: 'System', value: 'System' },
-      ],
-      render: (_, log) => (
-        <div className="flex items-center space-x-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="font-medium">
-              {log.user ? log.user.name : 'System'}
+      {
+        key: 'user',
+        title: 'User',
+        dataIndex: 'user',
+        sortable: true,
+        filterable: true,
+        mobilePriority: 'primary',
+        render: (_, log) => (
+          <div className="flex items-center space-x-2">
+            <UserIcon className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <div className="font-medium">
+                {log.user ? log.user.name : 'System'}
+              </div>
+              {log.user && (
+                <div className="text-xs text-muted-foreground">{log.user.email}</div>
+              )}
             </div>
-            {log.user && (
-              <div className="text-xs text-muted-foreground">{log.user.email}</div>
-            )}
           </div>
-        </div>
-      ),
-    },
-    {
-      key: 'statusCode',
-      title: 'Status',
-      dataIndex: 'statusCode',
-      sortable: true,
-      filterable: true,
-      mobilePriority: 'secondary',
-      filterOptions: [
-        { label: 'All Status', value: '' },
-        { label: 'Success (2xx)', value: '2xx' },
-        { label: 'Client Error (4xx)', value: '4xx' },
-        { label: 'Server Error (5xx)', value: '5xx' },
-      ],
-      render: (_, log) => {
-        const getStatusVariant = (code: number) => {
-          if (code >= 200 && code < 300) return 'default';
-          if (code >= 400 && code < 500) return 'secondary';
-          if (code >= 500) return 'destructive';
-          return 'outline';
-        };
-        
-        return (
-          <Badge variant={getStatusVariant(log.statusCode)} className="text-xs">
-            {log.statusCode}
-          </Badge>
-        );
+        ),
       },
-    },
+      {
+        key: 'statusCode',
+        title: 'Status',
+        dataIndex: 'statusCode',
+        sortable: true,
+        filterable: true,
+        mobilePriority: 'secondary',
+        render: (_, log) => {
+          const getStatusVariant = (code: number) => {
+            if (code >= 200 && code < 300) return 'default';
+            if (code >= 400 && code < 500) return 'secondary';
+            if (code >= 500) return 'destructive';
+            return 'outline';
+          };
+          
+          return (
+            <Badge variant={getStatusVariant(log.statusCode)} className="text-xs">
+              {log.statusCode}
+            </Badge>
+          );
+        },
+      },
     {
       key: 'ipAddress',
       title: 'IP Address',
@@ -297,39 +384,34 @@ export default function AuditLogsPage() {
         </div>
       ),
     },
-    {
-      key: 'isDelivered',
-      title: 'Delivered',
-      dataIndex: 'isDelivered',
-      sortable: true,
-      filterable: true,
-      mobilePriority: 'secondary',
-      filterOptions: [
-        { label: 'All', value: '' },
-        { label: 'Delivered', value: 'true' },
-        { label: 'Not Delivered', value: 'false' },
-      ],
-      render: (_, log) => (
-        <Badge variant={log.isDelivered ? 'default' : 'secondary'} className="text-xs">
-          {log.isDelivered ? 'Yes' : 'No'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'createdAt',
-      title: 'Created',
-      dataIndex: 'createdAt',
-      sortable: true,
-      mobilePriority: 'secondary',
-      render: (_, log) => (
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-xs sm:text-sm">
-            {new Date(log.createdAt).toLocaleString()}
-          </span>
-        </div>
-      ),
-    },
+      {
+        key: 'isDelivered',
+        title: 'Delivered',
+        dataIndex: 'isDelivered',
+        sortable: true,
+        filterable: true,
+        mobilePriority: 'secondary',
+        render: (_, log) => (
+          <Badge variant={log.isDelivered ? 'default' : 'secondary'} className="text-xs">
+            {log.isDelivered ? 'Yes' : 'No'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'createdAt',
+        title: 'Created',
+        dataIndex: 'createdAt',
+        sortable: true,
+        mobilePriority: 'secondary',
+        render: (_, log) => (
+          <div className="flex items-center space-x-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm">
+              {new Date(log.createdAt).toLocaleString()}
+            </span>
+          </div>
+        ),
+      },
   ];
 
   // Show initial loading state when page first loads
@@ -401,7 +483,7 @@ export default function AuditLogsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
-              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">{stats.today}</div>
@@ -452,7 +534,7 @@ export default function AuditLogsPage() {
       )}
 
       <DataTable
-        data={logs}
+        data={filteredLogs}
         columns={columns}
         loading={loading}
         serverSidePagination={true}
@@ -477,7 +559,7 @@ export default function AuditLogsPage() {
         onFilter={handleFilterChange}
         onSearch={(searchTerm) => {
           const newFilters = { ...filters, search: searchTerm };
-          setFilters(newFilters as AuditLogFilters);
+          setBaseFilters(newFilters as AuditLogFilters);
         }}
         searchValue={filters?.search || ''}
         searchPlaceholder="Search logs by action, endpoint, user, or IP..."
@@ -487,6 +569,130 @@ export default function AuditLogsPage() {
         }}
         rowKey="id"
         emptyMessage="No audit logs found"
+        showSelectionFilters={true}
+        showSearchFilter={false}
+        customFilters={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Action Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Action</label>
+              <Select value={actionFilter} onValueChange={setActionFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="API_CALL">API Call</SelectItem>
+                  <SelectItem value="JOB_STARTED">Job Started</SelectItem>
+                  <SelectItem value="JOB_COMPLETED">Job Completed</SelectItem>
+                  <SelectItem value="CRON_JOB">Cron Job</SelectItem>
+                  <SelectItem value="QUEUE_JOB_ADDED">Queue Job Added</SelectItem>
+                  <SelectItem value="SYSTEM_MAINTENANCE">System Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* User Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">User</label>
+              <Select value={userFilter} onValueChange={setUserFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                  {Array.from(new Set(filteredLogs.map(l => l.user?.name).filter(Boolean))).map(name => (
+                    <SelectItem key={name} value={name!}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="success">Success (2xx)</SelectItem>
+                  <SelectItem value="client-error">Client Error (4xx)</SelectItem>
+                  <SelectItem value="server-error">Server Error (5xx)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Delivered Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Delivered</label>
+              <Select value={deliveredFilter} onValueChange={setDeliveredFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="not-delivered">Not Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Start Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'PPP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => handleDateRangeChange(date, endDate)}
+                    disabled={(date) => isAfter(startOfDay(date), startOfDay(new Date()))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* End Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">End Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, 'PPP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => handleDateRangeChange(startDate, date)}
+                    disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      const selectedDate = startOfDay(date);
+                      if (isAfter(selectedDate, today)) return true;
+                      if (startDate && isBefore(selectedDate, startOfDay(startDate))) return true;
+                      return false;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        }
       />
 
       {/* View Modal */}
@@ -612,7 +818,7 @@ export default function AuditLogsPage() {
                 <Card>
                   <CardHeader className="pb-3 sm:pb-4">
                     <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
                       <span>User Information</span>
                     </CardTitle>
                   </CardHeader>

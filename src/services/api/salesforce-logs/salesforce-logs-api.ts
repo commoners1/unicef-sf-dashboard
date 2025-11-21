@@ -11,7 +11,12 @@ export class SalesforceLogsApiService {
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        params.append(key, value.toString());
+        // Handle boolean values - convert to string explicitly
+        if (typeof value === 'boolean') {
+          params.append(key, value ? 'true' : 'false');
+        } else {
+          params.append(key, value.toString());
+        }
       }
     });
 

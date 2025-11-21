@@ -117,6 +117,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: 'logs', component: LogsPage },
   { path: 'audit-logs', component: AuditLogsPage },
   { path: 'salesforce-logs', component: SalesforceLogsPage },
+  { path: 'salesforce-response', component: SalesforceResponsePage },
   { path: 'cron-jobs', component: CronJobsPage },
   { path: 'performance', component: PerformancePage },
 ];
@@ -129,7 +130,6 @@ const adminRoutes: RouteConfig[] = [
   { path: 'errors', component: ErrorsPage, requiresSuperAdmin: true },
   { path: 'errors/:id', component: ErrorDetailsPage, requiresSuperAdmin: true },
   { path: 'reports', component: ReportsPage, requiresAdmin: true },
-  { path: 'salesforce-response', component: SalesforceResponsePage, requiresAdmin: true },
   { path: 'settings', component: SettingsPage, requiresAdmin: true },
   { path: 'notifications', component: NotificationsPage, requiresAdmin: true },
 ];

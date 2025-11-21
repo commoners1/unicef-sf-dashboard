@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,9 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PageLoading } from '@/components/ui/loading';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePaginatedFetch, useDataFetching } from '@/hooks';
 import { 
   FileText, 
@@ -15,9 +18,9 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
-  User,
+  User as UserIcon,
   Globe,
-  Calendar,
+  Calendar as CalendarIcon,
   Eye,
   Code,
   Server,
@@ -32,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { format, addDays, startOfDay, isAfter, isBefore } from 'date-fns';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
 import { SalesforceLogsApiService } from '@/services/api/salesforce-logs/salesforce-logs-api';
 import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
@@ -41,6 +45,72 @@ export default function SalesforceLogsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Filter state
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [userFilter, setUserFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deliveredFilter, setDeliveredFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  // Build filters function that includes date range and other filters
+  // Note: This is defined before usePaginatedFetch, so we can't use 'logs' here
+  const buildFilters = useCallback((): AuditLogFilters => {
+    const newFilters: AuditLogFilters = {};
+    
+    // Action filter
+    if (actionFilter && actionFilter !== 'all') {
+      if (actionFilter === 'POST') {
+        // For POST, we want to show all Salesforce API methods (POST-based)
+        // but exclude CRON_JOB entries
+        // We'll use a special filter value 'NOT_CRON_JOB' that the backend will handle
+        newFilters.action = 'NOT_CRON_JOB'; // Special value to exclude CRON_JOB
+      } else if (actionFilter === 'CRON_JOB') {
+        // CRON_JOB is an action - filter by action = CRON_JOB
+        newFilters.action = 'CRON_JOB';
+      }
+    }
+    
+    // User filter - Note: We'll handle user filtering client-side after fetching
+    // We can't use userId here because we don't have access to logs yet
+    
+    // Status filter - note: backend may need to handle ranges
+    // For now, we'll pass the filter and let backend handle it
+    if (statusFilter && statusFilter !== 'all') {
+      // Backend might need enhancement to handle status code ranges
+      // For now, we'll pass a specific status code as placeholder
+      // The backend should ideally support filtering by status code ranges
+      if (statusFilter === 'success') {
+        // Note: Backend needs to handle 2xx range
+        // For now, use 200 as example - backend should filter 200-299
+        newFilters.statusCode = 200;
+      } else if (statusFilter === 'client-error') {
+        // Backend should filter 400-499
+        newFilters.statusCode = 400;
+      } else if (statusFilter === 'server-error') {
+        // Backend should filter 500-599
+        newFilters.statusCode = 500;
+      }
+    }
+    
+    // Delivered filter
+    if (deliveredFilter && deliveredFilter !== 'all') {
+      // Convert string to boolean
+      newFilters.isDelivered = deliveredFilter === 'delivered' ? true : false;
+    }
+    
+    // Date filters
+    if (startDate) {
+      newFilters.startDate = format(startDate, 'yyyy-MM-dd');
+    }
+    if (endDate) {
+      const endDatePlusOne = addDays(endDate, 1);
+      newFilters.endDate = format(endDatePlusOne, 'yyyy-MM-dd');
+    }
+    
+    return newFilters;
+  }, [actionFilter, statusFilter, deliveredFilter, startDate, endDate]);
+
   // Use the new paginated fetch hook
   const {
     data: logs,
@@ -48,12 +118,18 @@ export default function SalesforceLogsPage() {
     error: fetchError,
     pagination,
     filters,
-    setFilters,
+    setFilters: setBaseFilters,
     handlePageChange,
     handlePageSizeChange,
     handleRefresh,
   } = usePaginatedFetch<AuditLog>({
-    fetchFn: SalesforceLogsApiService.getSalesforceLogs,
+    fetchFn: useCallback(async (filters) => {
+      const dateFilters = buildFilters();
+      return SalesforceLogsApiService.getSalesforceLogs({
+        ...filters,
+        ...dateFilters,
+      });
+    }, [buildFilters]),
     initialFilters: {} as AuditLogFilters,
     initialPageSize: 10,
     autoFetch: true,
@@ -74,6 +150,31 @@ export default function SalesforceLogsPage() {
     },
   });
 
+  // Apply client-side filter for User (since we can't filter by userId in buildFilters)
+  const filteredLogs = useMemo(() => {
+    if (userFilter === 'all') {
+      return logs;
+    }
+
+    let result = [...logs];
+
+    if (userFilter === 'system') {
+      // Filter for logs without userId (system logs)
+      result = result.filter(log => !log.userId && !log.user);
+    } else {
+      // Filter by user name (client-side)
+      result = result.filter(log => log.user?.name === userFilter);
+    }
+
+    return result;
+  }, [logs, userFilter]);
+
+  // Update filters when date range or other filters change (except userFilter which is client-side)
+  useEffect(() => {
+    handleRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, actionFilter, statusFilter, deliveredFilter]);
+
   // Combined refresh handler
   const handleRefreshAll = async () => {
     setActionError(null);
@@ -83,6 +184,23 @@ export default function SalesforceLogsPage() {
   const handleView = (log: AuditLog) => {
     setSelectedLog(log);
     setIsViewModalOpen(true);
+  };
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+    // Refetch will be triggered by useEffect when dates change
+  };
+
+  const clearFilters = () => {
+    setActionFilter('all');
+    setUserFilter('all');
+    setStatusFilter('all');
+    setDeliveredFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setBaseFilters({});
+    // State updates are async, so useEffect will handle the refresh
   };
 
   // Helper function to clean filters - remove undefined/null/empty values and pagination fields
@@ -151,7 +269,7 @@ export default function SalesforceLogsPage() {
 
   // Handle filter change
   const handleFilterChange = (newFilters: AuditLogFilters) => {
-    setFilters(newFilters);
+    setBaseFilters(newFilters);
   };
 
   const columns: Column<AuditLog>[] = [
@@ -204,17 +322,11 @@ export default function SalesforceLogsPage() {
       sortable: true,
       filterable: true,
       mobilePriority: 'primary',
-      filterOptions: [
-        { label: 'All Users', value: '' },
-        ...Array.from(new Set(logs.map(l => l.user?.name).filter(Boolean))).map(name => ({
-          label: name!,
-          value: name!,
-        })),
-        { label: 'System', value: 'System' },
-      ],
+      // filterOptions are set dynamically based on available users in the data
+      // We'll handle user filtering client-side, so filterOptions can be empty
       render: (_, log) => (
         <div className="flex items-center space-x-2 min-w-0">
-          <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <UserIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="font-medium truncate">
               {log.user ? log.user.name : 'System'}
@@ -306,7 +418,7 @@ export default function SalesforceLogsPage() {
       mobilePriority: 'secondary',
       render: (_, log) => (
         <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-xs sm:text-sm">
             {new Date(log.createdAt).toLocaleString()}
           </span>
@@ -384,7 +496,7 @@ export default function SalesforceLogsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
-              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">{stats.today}</div>
@@ -435,7 +547,7 @@ export default function SalesforceLogsPage() {
       )}
 
       <DataTable
-        data={logs}
+        data={filteredLogs}
         columns={columns}
         loading={loading}
         serverSidePagination={true}
@@ -455,15 +567,155 @@ export default function SalesforceLogsPage() {
         }}
         onSort={(field, direction) => {
           const newFilters = { ...filters, sortBy: field, sortOrder: direction };
-          setFilters(newFilters as AuditLogFilters);
+          setBaseFilters(newFilters as AuditLogFilters);
         }}
         onFilter={handleFilterChange}
         onSearch={(searchTerm) => {
           const newFilters = { ...filters, search: searchTerm };
-          setFilters(newFilters as AuditLogFilters);
+          setBaseFilters(newFilters as AuditLogFilters);
         }}
         searchValue={filters?.search || ''}
         searchPlaceholder="Search logs by action, endpoint, user, or IP..."
+        showSelectionFilters={true}
+        showSearchFilter={false}
+        customFilters={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs sm:text-sm font-medium">Selection Filters</span>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-7">
+                Clear All
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Action Filter */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Action</label>
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select action" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="CRON_JOB">Cron Job</SelectItem>
+                    <SelectItem value="POST">POST</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* User Filter */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">User</label>
+                <Select value={userFilter} onValueChange={setUserFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="system">System</SelectItem>
+                    {Array.from(new Set(filteredLogs.map(l => l.user?.name).filter(Boolean))).map(name => (
+                      <SelectItem key={name} value={name!}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="success">Success (2xx)</SelectItem>
+                    <SelectItem value="client-error">Client Error (4xx)</SelectItem>
+                    <SelectItem value="server-error">Server Error (5xx)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Delivered Filter */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Delivered</label>
+                <Select value={deliveredFilter} onValueChange={setDeliveredFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="not-delivered">Not Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Start Date */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Start Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, 'PPP') : 'Select date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => handleDateRangeChange(date, endDate)}
+                      disabled={(date) => {
+                        // Disable dates after today
+                        return isAfter(startOfDay(date), startOfDay(new Date()));
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* End Date */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">End Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, 'PPP') : 'Select date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => handleDateRangeChange(startDate, date)}
+                      disabled={(date) => {
+                        const today = startOfDay(new Date());
+                        const selectedDate = startOfDay(date);
+                        
+                        // Disable dates after today
+                        if (isAfter(selectedDate, today)) {
+                          return true;
+                        }
+                        
+                        // Disable dates before the selected start date (if start date is selected)
+                        if (startDate && isBefore(selectedDate, startOfDay(startDate))) {
+                          return true;
+                        }
+                        
+                        return false;
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+        }
         actions={{
           view: handleView,
           export: handleExport,
@@ -595,7 +847,7 @@ export default function SalesforceLogsPage() {
                 <Card>
                   <CardHeader className="pb-3 sm:pb-4">
                     <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
                       <span>User Information</span>
                     </CardTitle>
                   </CardHeader>

@@ -55,8 +55,8 @@ const menuGroups: MenuGroup[] = [
     title: 'API Management',
     items: [
       { key: 'api-keys', label: 'API Keys', icon: <Key className="h-4 w-4" />, permission: 'VIEW_API_KEYS' },
-      { key: 'endpoints', label: 'Endpoints', icon: <Monitor className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
-      { key: 'usage', label: 'Usage Analytics', icon: <BarChart3 className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
+      { key: 'endpoints', label: 'Endpoints', icon: <Monitor className="h-4 w-4" />, permission: 'VIEW_API_KEYS' },
+      { key: 'usage', label: 'Usage Analytics', icon: <BarChart3 className="h-4 w-4" />, permission: 'VIEW_API_KEYS' },
     ]
   },
   {
@@ -94,7 +94,7 @@ const menuGroups: MenuGroup[] = [
     title: 'Reports',
     items: [
       { key: 'reports', label: 'Reports', icon: <FileText className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
-      { key: 'salesforce-response', label: 'Salesforce Response', icon: <Cloud className="h-4 w-4" />, permission: 'VIEW_AUDIT_LOGS' },
+      { key: 'salesforce-response', label: 'Salesforce Response', icon: <Cloud className="h-4 w-4" />, isAlwaysVisible: true },
     ]
   },
   {
