@@ -154,7 +154,7 @@ export default function OverviewPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div>
+        <div className="pt-6 sm:pt-0 pb-6 sm:pb-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard Overview</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Monitor your Salesforce Middleware API performance and health
@@ -168,7 +168,7 @@ export default function OverviewPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
+        <div className="pt-6 sm:pt-0 pb-6 sm:pb-0">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
           <p className="text-muted-foreground">
             Monitor your Salesforce Middleware API performance and health
@@ -188,7 +188,7 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-0 pb-6 sm:pb-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard Overview</h1>
           <p className="text-sm sm:text-base text-muted-foreground">

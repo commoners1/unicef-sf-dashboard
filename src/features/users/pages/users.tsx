@@ -269,7 +269,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-0 pb-6 sm:pb-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -295,74 +295,74 @@ export default function UsersPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md p-3 sm:p-4">
           <div className="flex">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">{error}</div>
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="ml-2 sm:ml-3 min-w-0 flex-1">
+              <h3 className="text-xs sm:text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+              <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 dark:text-red-300 break-words">{error}</div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl sm:text-2xl font-bold">{pagination.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               {activeUsers} active users
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">API Keys</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">API Keys</CardTitle>
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalApiKeys}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl sm:text-2xl font-bold">{totalApiKeys}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Total active keys
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Admins</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{adminUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl sm:text-2xl font-bold">{adminUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Full access users
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Operators</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Operators</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{operatorUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl sm:text-2xl font-bold">{operatorUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Limited access users
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Viewers</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Viewers</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{viewerUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl sm:text-2xl font-bold">{viewerUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Read-only users
             </p>
           </CardContent>

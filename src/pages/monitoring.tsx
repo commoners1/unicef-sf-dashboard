@@ -170,7 +170,7 @@ export default function MonitoringPage() {
   if (isLoading && !healthData) {
     return (
       <div className="space-y-6">
-        <div>
+        <div className="pt-6 sm:pt-0 pb-6 sm:pb-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">System Monitoring</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Real-time system health and performance monitoring
@@ -202,7 +202,7 @@ export default function MonitoringPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-0 pb-6 sm:pb-0">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Real-time Monitor</h1>
             <p className="text-sm sm:text-base text-muted-foreground">
@@ -223,7 +223,7 @@ export default function MonitoringPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleForceFlush} className="flex-1 sm:flex-initial">
-                <Settings className="h-4 w-4 mr-1.5 sm:mr-2" />
+                <Settings className="h-4 w-4 mr-0 sm:mr-2" />
                 <span className="hidden sm:inline">Force Flush</span>
               </Button>
               <Button size="sm" onClick={loadMonitoringData} disabled={isLoading} className="flex-1 sm:flex-initial">

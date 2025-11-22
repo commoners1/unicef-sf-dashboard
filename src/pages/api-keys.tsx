@@ -145,7 +145,7 @@ export default function ApiKeysPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-6 sm:pt-0 pb-6 sm:pb-0">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">API Keys</h1>
             <p className="text-sm sm:text-base text-muted-foreground">

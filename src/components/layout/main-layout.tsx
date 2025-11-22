@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
+import { Footer } from './footer';
 import { useDashboardStore } from '@/features/dashboard';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
@@ -32,7 +33,7 @@ export function MainLayout() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
-      <div className="flex flex-1 overflow-hidden pt-14 sm:pt-16">
+      <div className="flex flex-1 overflow-hidden pt-14 sm:pt-16 pb-12 sm:pb-14">
         {/* Mobile Overlay */}
         {sidebarOpen && (
           <div
@@ -64,6 +65,7 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+      <Footer />
     </div>
   );
 }

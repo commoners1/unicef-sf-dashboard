@@ -54,15 +54,20 @@ export async function migrateStorage(): Promise<void> {
         
         // Check if data is already encrypted
         if (isEncrypted(legacyProfile)) {
-          // Try to decrypt it first
+          // Try to decrypt it first (silent mode to avoid console noise for expected failures)
           try {
-            const decrypted = await SecureStorage.getItem('user_profile', true);
+            const decrypted = await SecureStorage.getItem('user_profile', true, true);
             if (decrypted) {
               user = JSON.parse(decrypted) as LegacyUserProfile;
+            } else {
+              // Decryption returned null, data is corrupted
+              console.debug('user_profile data is corrupted or cannot be decrypted, removing it');
+              SecureStorage.removeItem('user_profile');
+              return; // Skip migration for this item
             }
           } catch (decryptError) {
             // If decryption fails, it might be corrupted encrypted data
-            console.warn('Failed to decrypt user_profile, removing corrupted data:', decryptError);
+            console.debug('Failed to decrypt user_profile, removing corrupted data');
             SecureStorage.removeItem('user_profile');
             return; // Skip migration for this item
           }

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, isValidElement, cloneElement } from 'react';
+import type { ReactElement } from 'react';
 import { 
   LayoutDashboard, 
   Workflow, 
@@ -183,6 +184,12 @@ export function Sidebar({ className }: SidebarProps) {
                   {group.items.map((item) => {
                     const to = `/${item.key}`;
                     const isActive = location.pathname === to;
+                    // Clone icon and adjust size based on collapsed state
+                    const iconWithSize = isValidElement(item.icon) && sidebarCollapsed
+                      ? cloneElement(item.icon as ReactElement<any>, { 
+                          className: cn("h-5 w-5", (item.icon as ReactElement<any>).props?.className) 
+                        })
+                      : item.icon;
                     return (
                       <Link
                         key={item.key}
@@ -190,11 +197,15 @@ export function Sidebar({ className }: SidebarProps) {
                         onClick={handleLinkClick}
                         className={cn(
                           "w-full flex items-center rounded-md px-3 sm:px-4 py-2 text-left transition-colors text-sm",
+                          sidebarCollapsed ? "justify-center" : "",
                           isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted",
                         )}
                         style={{ textDecoration: 'none' }}
+                        title={sidebarCollapsed ? item.label : undefined}
                       >
-                        {item.icon}
+                        <span className={cn(sidebarCollapsed ? "flex items-center justify-center" : "")}>
+                          {iconWithSize}
+                        </span>
                         {!sidebarCollapsed && <span className="ml-2 truncate">{item.label}</span>}
                       </Link>
                     );

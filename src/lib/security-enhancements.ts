@@ -331,8 +331,9 @@ export class SecureStorage {
 
   /**
    * Decrypts data using AES-GCM
+   * @param silent - If true, don't log errors (for expected failures like corrupted data)
    */
-  private static async decrypt(encryptedData: string): Promise<string> {
+  private static async decrypt(encryptedData: string, silent = false): Promise<string> {
     try {
       const key = await this.getKey();
       
@@ -357,12 +358,16 @@ export class SecureStorage {
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
     } catch (error) {
-      console.error('Decryption error:', error);
+      // Only log if not in silent mode (for expected failures during migration)
+      if (!silent) {
+        console.error('Decryption error:', error);
+      }
       // Try fallback decryption
       try {
         return decodeURIComponent(escape(atob(encryptedData)));
       } catch {
-        return '';
+        // Re-throw to let caller handle corrupted data
+        throw error;
       }
     }
   }
@@ -393,9 +398,10 @@ export class SecureStorage {
    * Gets data with decryption
    * @param key - Storage key
    * @param decrypt - Whether to decrypt the data (default: true)
+   * @param silent - If true, don't log decryption errors (for expected failures)
    * @returns Decrypted value or null if not found
    */
-  static async getItem(key: string, decrypt = true): Promise<string | null> {
+  static async getItem(key: string, decrypt = true, silent = false): Promise<string | null> {
     try {
       const value = localStorage.getItem(key);
       if (!value) return null;
@@ -403,16 +409,19 @@ export class SecureStorage {
       if (decrypt) {
         // Check if it's encrypted (base64 format)
         try {
-          return await this.decrypt(value);
+          return await this.decrypt(value, silent);
         } catch {
-          // If decryption fails, might be unencrypted legacy data
-          return value;
+          // If decryption fails, might be unencrypted legacy data or corrupted
+          // Return null to indicate the data couldn't be decrypted
+          return null;
         }
       }
       
       return value;
     } catch (error) {
-      console.error('SecureStorage getItem error:', error);
+      if (!silent) {
+        console.error('SecureStorage getItem error:', error);
+      }
       return null;
     }
   }
