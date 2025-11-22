@@ -22,6 +22,28 @@ export function getErrorMessage(
 }
 
 /**
+ * Checks if an error is an authentication error (401)
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const axiosError = error as { response?: { status?: number } };
+    return axiosError.response?.status === 401;
+  }
+  return false;
+}
+
+/**
+ * Checks if an error is an authorization error (403)
+ */
+export function isAuthorizationError(error: unknown): boolean {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const axiosError = error as { response?: { status?: number } };
+    return axiosError.response?.status === 403;
+  }
+  return false;
+}
+
+/**
  * Extracts error message from API response
  * 
  * @param error - Axios error or other API error
@@ -36,7 +58,7 @@ export function getApiErrorMessage(error: unknown): string {
         return axiosError.response.data.message;
       }
       if (axiosError.response?.status === 401) {
-        return 'Invalid email or password. Please check your credentials and try again.';
+        return 'Your session has expired. Please log in again to continue.';
       }
       if (axiosError.response?.status === 403) {
         return 'Access denied. Please contact your administrator for access.';

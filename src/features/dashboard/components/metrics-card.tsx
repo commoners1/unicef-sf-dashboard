@@ -52,7 +52,7 @@ export function MetricsCard({
           <div className="flex items-center space-x-1 text-xs">
             {getTrendIcon()}
             <span className={getTrendColor()}>
-              {change > 0 ? '+' : ''}{change}%
+              {change > 0 ? '+' : ''}{Number(change.toFixed(3))}%
             </span>
             <span className="text-muted-foreground">from last period</span>
           </div>

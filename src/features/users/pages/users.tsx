@@ -164,9 +164,8 @@ export default function UsersPage() {
       sortable: true,
       filterable: true,
       mobilePriority: 'primary',
-      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center justify-end space-x-2">
+        <div className="flex items-center space-x-2">
           <Building className="h-4 w-4 text-muted-foreground" />
           <span>{user.company || 'N/A'}</span>
         </div>
@@ -179,7 +178,6 @@ export default function UsersPage() {
       sortable: true,
       filterable: true,
       mobilePriority: 'primary',
-      align: 'right',
       filterOptions: [
         { label: 'All Roles', value: '' },
         { label: 'Super Admin', value: 'SUPER_ADMIN' },
@@ -197,7 +195,7 @@ export default function UsersPage() {
         };
 
         return (
-          <div className="flex items-center justify-end space-x-2">
+          <div className="flex items-center space-x-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <Badge variant={getRoleVariant(user.role)}>
               {formatRoleName(user.role)}
@@ -212,9 +210,8 @@ export default function UsersPage() {
       dataIndex: 'apiKeyCount',
       sortable: true,
       mobilePriority: 'secondary',
-      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center justify-end space-x-2">
+        <div className="flex items-center space-x-2">
           <Key className="h-4 w-4 text-muted-foreground" />
           <span className="font-mono">{user.apiKeyCount || 0}</span>
         </div>
@@ -227,18 +224,15 @@ export default function UsersPage() {
       sortable: true,
       filterable: true,
       mobilePriority: 'secondary',
-      align: 'right',
       filterOptions: [
         { label: 'All', value: '' },
         { label: 'Active', value: 'true' },
         { label: 'Inactive', value: 'false' },
       ],
       render: (_, user) => (
-        <div className="flex justify-end">
-          <Badge variant={user.isActive ? 'default' : 'secondary'}>
-            {user.isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
+        <Badge variant={user.isActive ? 'default' : 'secondary'}>
+          {user.isActive ? 'Active' : 'Inactive'}
+        </Badge>
       ),
     },
     {
@@ -247,9 +241,8 @@ export default function UsersPage() {
       dataIndex: 'lastLogin',
       sortable: true,
       mobilePriority: 'secondary',
-      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center justify-end space-x-2">
+        <div className="flex items-center space-x-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
             {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
@@ -263,9 +256,8 @@ export default function UsersPage() {
       dataIndex: 'createdAt',
       sortable: true,
       mobilePriority: 'secondary',
-      align: 'right',
       render: (_, user) => (
-        <div className="flex items-center justify-end space-x-2">
+        <div className="flex items-center space-x-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
             {new Date(user.createdAt).toLocaleDateString()}

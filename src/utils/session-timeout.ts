@@ -6,6 +6,7 @@
  */
 
 import { AuthApiService } from '@/services/api/auth/auth-api';
+import { getLoginUrl, isPublicRoute } from '@/config/routes.config';
 
 const SESSION_TIMEOUT_KEY = 'session_last_activity';
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity
@@ -81,14 +82,14 @@ export function initializeSessionTimeout(): void {
     // Clear session (async) and redirect
     clearSessionOnTimeout().then(() => {
       // Redirect to login if we're on a protected page
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/unauthorized') {
-        window.location.href = '/dashboard/login';
+      if (!isPublicRoute(window.location.pathname)) {
+        window.location.href = getLoginUrl();
       }
     }).catch(error => {
       console.error('Error during session timeout cleanup:', error);
       // Still redirect even if cleanup failed
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/unauthorized') {
-        window.location.href = '/dashboard/login';
+      if (!isPublicRoute(window.location.pathname)) {
+        window.location.href = getLoginUrl();
       }
     });
     return;
@@ -116,15 +117,15 @@ export function initializeSessionTimeout(): void {
         clearInterval(timeoutCheckInterval);
         
         // Redirect to login
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/unauthorized') {
-          window.location.href = '/dashboard/login';
+        if (!isPublicRoute(window.location.pathname)) {
+          window.location.href = getLoginUrl();
         }
       }).catch(error => {
         console.error('Error during session timeout cleanup:', error);
         clearInterval(timeoutCheckInterval);
         // Still redirect even if cleanup failed
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/unauthorized') {
-          window.location.href = '/dashboard/login';
+        if (!isPublicRoute(window.location.pathname)) {
+          window.location.href = getLoginUrl();
         }
       });
     }

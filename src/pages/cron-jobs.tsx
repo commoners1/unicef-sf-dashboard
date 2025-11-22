@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,117 +13,60 @@ import {
   Loader2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { CronJobsApiService, type CronJob, type CronJobStats, type CronJobHistory, type CronSchedule } from '@/services/api/cron-jobs/cron-jobs-api';
+import { 
+  useCronJobStats,
+  useCronSchedules,
+  useCronJobs,
+  useCronJobHistory,
+  useRunCronJob,
+  useToggleCronJob
+} from '@/hooks/queries/use-cron-jobs-queries';
+import { toast } from 'sonner';
 
 const CronJobsPage = () => {
-  const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
-  const [stats, setStats] = useState<CronJobStats | null>(null);
-  const [history, setHistory] = useState<CronJobHistory[]>([]);
-  const [schedules, setSchedules] = useState<CronSchedule[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
-    total: 0,
-    pages: 0,
   });
   const [historyPagination, setHistoryPagination] = useState({
     page: 1,
     limit: 10,
-    total: 0,
-    pages: 0,
   });
   const [activeTab, setActiveTab] = useState('overview');
-  const [togglingJobs, setTogglingJobs] = useState<Set<string>>(new Set());
 
-  // Load cron jobs data
-  const loadCronJobs = async (page = 1, status?: string, type?: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await CronJobsApiService.getCronJobs({
-        page,
-        limit: pagination.limit,
-        status,
-        type,
-      });
-      
-      setCronJobs(response.jobs);
-      setPagination(response.pagination);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load cron jobs';
-      setError(errorMessage);
-      console.error('Error loading cron jobs:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use React Query hooks for data fetching
+  const { data: stats, isLoading: isLoadingStats } = useCronJobStats();
+  const { data: schedules = [], isLoading: isLoadingSchedules, refetch: refetchSchedules } = useCronSchedules();
+  const { data: cronJobsData, isLoading: isLoadingJobs } = useCronJobs({
+    page: pagination.page,
+    limit: pagination.limit,
+  });
+  const { data: historyData, isLoading: isLoadingHistory } = useCronJobHistory({
+    page: historyPagination.page,
+    limit: historyPagination.limit,
+  });
 
-  // Load stats
-  const loadStats = async () => {
-    try {
-      const response = await CronJobsApiService.getCronJobStats();
-      setStats(response);
-    } catch (err) {
-      console.error('Error loading stats:', err);
-    }
-  };
+  const cronJobs = cronJobsData?.jobs || [];
+  const history = historyData?.history || [];
+  const isLoading = isLoadingStats || isLoadingSchedules || isLoadingJobs || isLoadingHistory;
+  const error = null; // React Query handles errors internally
 
-  // Load history
-  const loadHistory = async (page = 1, jobId?: string) => {
-    try {
-      const response = await CronJobsApiService.getCronJobHistory({
-        page,
-        limit: historyPagination.limit,
-        jobId,
-      });
-      
-      setHistory(response.history);
-      setHistoryPagination(response.pagination);
-    } catch (err) {
-      console.error('Error loading history:', err);
-    }
-  };
-
-  // Load schedules
-  const loadSchedules = async () => {
-    try {
-      const response = await CronJobsApiService.getCronSchedules();
-      setSchedules(response);
-    } catch (err) {
-      console.error('Error loading schedules:', err);
-    }
-  };
-
-  // Load all data
-  const loadAllData = async () => {
-    await Promise.all([
-      loadCronJobs(),
-      loadStats(),
-      loadHistory(),
-      loadSchedules(),
-    ]);
-  };
-
-  // Initial load
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  // Mutations
+  const runJobMutation = useRunCronJob();
+  const toggleJobMutation = useToggleCronJob();
 
   // Handle refresh
   const handleRefresh = () => {
-    loadAllData();
+    refetchSchedules();
   };
 
   // Handle run job
   const handleRunJob = async (jobType: string) => {
     try {
-      await CronJobsApiService.runCronJob(jobType);
-      // Refresh data after running
-      loadAllData();
-    } catch (err) {
+      await runJobMutation.mutateAsync(jobType);
+      toast.success('Job executed successfully');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to run job');
       console.error('Error running job:', err);
     }
   };
@@ -132,34 +75,16 @@ const CronJobsPage = () => {
   const handleToggleJob = async (jobType: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
     
-    // Optimistically update the UI
-    setSchedules(prev => prev.map(schedule => 
-      schedule.type === jobType 
-        ? { ...schedule, isEnabled: newEnabled }
-        : schedule
-    ));
-    
-    // Track which job is being toggled
-    setTogglingJobs(prev => new Set(prev).add(jobType));
-    
     try {
-      await CronJobsApiService.toggleCronJob(jobType, newEnabled);
-      // Refresh schedules to get the latest state
-      await loadSchedules();
-    } catch (err) {
+      await toggleJobMutation.mutateAsync({ jobType, enabled: newEnabled });
+      // Wait a bit for backend cache invalidation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Force refetch schedules with fresh data (bypass cache)
+      await refetchSchedules({ cancelRefetch: false });
+      toast.success(`Job ${newEnabled ? 'enabled' : 'disabled'} successfully`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to toggle job');
       console.error('Error toggling cron job:', err);
-      // Revert on error
-      setSchedules(prev => prev.map(schedule => 
-        schedule.type === jobType 
-          ? { ...schedule, isEnabled: currentEnabled }
-          : schedule
-      ));
-    } finally {
-      setTogglingJobs(prev => {
-        const next = new Set(prev);
-        next.delete(jobType);
-        return next;
-      });
     }
   };
 
@@ -391,7 +316,7 @@ const CronJobsPage = () => {
               ) : (
                 <div className="space-y-4">
                   {schedules.map((schedule) => {
-                    const isToggling = togglingJobs.has(schedule.type);
+                    const isToggling = toggleJobMutation.isPending && toggleJobMutation.variables?.jobType === schedule.type;
                     return (
                       <div key={schedule.name} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between">

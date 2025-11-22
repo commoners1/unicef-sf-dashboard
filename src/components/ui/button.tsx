@@ -53,4 +53,5 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = 'Button';
 
+// Fast Refresh: Export variants separately to avoid HMR warnings
 export { Button, buttonVariants };

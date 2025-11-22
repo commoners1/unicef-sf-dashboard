@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageLoading } from '@/components/ui/loading';
 import { MetricsCard } from '@/features/dashboard';
-import { AuditApiService } from '@/services/api/audit/audit-api';
-import { QueueApiService } from '@/services/api/queue/queue-api';
-import { calculateSuccessRate, getApiErrorMessage } from '@/lib/utils';
-import { useAutoRefresh } from '@/hooks';
+import { calculateSuccessRate } from '@/lib/utils';
+import { getApiErrorMessage, isAuthenticationError } from '@/lib/error-handler';
+import { getLoginUrl } from '@/config/routes.config';
+import { 
+  useAuditDashboardStats,
+  useQueueHealth,
+  useQueueDetailedStats
+} from '@/hooks/queries';
 import { 
   Activity, 
   Users, 
@@ -16,44 +19,42 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  LogIn
 } from 'lucide-react';
-
 export default function DashboardPage() {
-  const [auditStats, setAuditStats] = useState<any>(null);
-  const [queueHealth, setQueueHealth] = useState<any>(null);
-  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Use React Query hooks with automatic caching and refetching
+  const { 
+    data: auditStats, 
+    isLoading: isLoadingStats,
+    error: statsError,
+    refetch: refetchStats
+  } = useAuditDashboardStats();
 
-  // Load real data from backend
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const [stats, health, performance] = await Promise.all([
-        AuditApiService.getAuditStats(),
-        QueueApiService.getQueueHealth(),
-        QueueApiService.getDetailedStats(),
-      ]);
-      setAuditStats(stats);
-      setQueueHealth(health);
-      setPerformanceMetrics(performance);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-      console.error('Error loading dashboard data:', err);
-    } finally {
-      setIsLoading(false);
-    }
+  const { 
+    data: queueHealth, 
+    isLoading: isLoadingHealth,
+    error: healthError,
+    refetch: refetchHealth
+  } = useQueueHealth();
+
+  const { 
+    data: performanceMetrics, 
+    isLoading: isLoadingPerformance,
+    error: performanceError,
+    refetch: refetchPerformance
+  } = useQueueDetailedStats();
+
+  // Combined loading and error states
+  const isLoading = isLoadingStats || isLoadingHealth || isLoadingPerformance;
+  const error = statsError || healthError || performanceError;
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    refetchStats();
+    refetchHealth();
+    refetchPerformance();
   };
-
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Auto-refresh every 60 seconds
-  useAutoRefresh(loadData, { interval: 60000 });
 
   // Calculate derived metrics
   const calculatedMetrics = {
@@ -66,10 +67,18 @@ export default function DashboardPage() {
       Object.values(queueHealth.queues).reduce((total: number, queue: any) => total + (queue.waiting || 0), 0) : 0
   };
 
+  // Helper function to format numbers with max 3 decimal places
+  const formatNumber = (num: number): string => {
+    if (Number.isInteger(num)) {
+      return num.toString();
+    }
+    return Number(num.toFixed(3)).toString();
+  };
+
   const systemHealthData = {
     api: { 
       status: 'healthy', 
-      responseTime: `${Math.round(performanceMetrics?.performance?.avgProcessingTime || 0)}ms` 
+      responseTime: `${formatNumber(performanceMetrics?.performance?.avgProcessingTime || 0)}ms` 
     },
     database: { 
       status: 'healthy', 
@@ -77,7 +86,7 @@ export default function DashboardPage() {
     },
     redis: { 
       status: 'healthy', 
-      memory: `${Math.round((performanceMetrics?.performance?.memoryUsage || 0) * 100)}%` 
+      memory: `${formatNumber((performanceMetrics?.performance?.memoryUsage || 0) * 100)}%` 
     },
     queue: { 
       status: queueHealth?.status === 'healthy' ? 'healthy' : 'warning',
@@ -114,19 +123,67 @@ export default function DashboardPage() {
   }
 
   if (error) {
+    const errorMessage = getApiErrorMessage(error);
+    const isAuthError = isAuthenticationError(error);
+    
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Real-time system overview and key metrics
           </p>
         </div>
-        <Card className="border-destructive">
+        <Card className={isAuthError ? 'border-yellow-500' : 'border-destructive'}>
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <span>{error}</span>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className={`h-5 w-5 mt-0.5 ${isAuthError ? 'text-yellow-500' : 'text-destructive'}`} />
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">
+                    {isAuthError ? 'Session Expired' : 'Error Loading Dashboard'}
+                  </h3>
+                  <p className={`text-sm ${isAuthError ? 'text-yellow-700 dark:text-yellow-400' : 'text-destructive'}`}>
+                    {errorMessage}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                {isAuthError ? (
+                  <Button
+                    onClick={() => {
+                      window.location.href = getLoginUrl();
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Log In
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="w-full sm:w-auto"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                )}
+                {!isAuthError && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      window.location.reload();
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    Reload Page
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -146,7 +203,7 @@ export default function DashboardPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
+          onClick={handleRefresh}
           disabled={isLoading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -221,7 +278,7 @@ export default function DashboardPage() {
         />
         <MetricsCard
           title="Success Rate"
-          value={`${calculatedMetrics.successRate}%`}
+          value={`${formatNumber(calculatedMetrics.successRate)}%`}
           change={0.3}
           changeType="increase"
           description="API response success rate"
@@ -229,7 +286,7 @@ export default function DashboardPage() {
         />
         <MetricsCard
           title="Avg Response Time"
-          value={`${calculatedMetrics.averageResponseTime}ms`}
+          value={`${formatNumber(calculatedMetrics.averageResponseTime)}ms`}
           change={-15}
           changeType="decrease"
           description="Average processing time"

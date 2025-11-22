@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageLoading } from '@/components/ui/loading';
 import { MetricsCard, useDashboardStore } from '@/features/dashboard';
-import { AuditApiService } from '@/services/api/audit/audit-api';
-import { QueueApiService } from '@/services/api/queue/queue-api';
 import { ExportApiService } from '@/services/api/export/export-api';
-import { calculateSuccessRate, getApiErrorMessage } from '@/lib/utils';
-import { useAutoRefresh } from '@/hooks';
+import { calculateSuccessRate } from '@/lib/utils';
+import { 
+  useAuditDashboardStats,
+  useQueueHealth
+} from '@/hooks/queries';
 import { 
   Activity, 
   Database, 
@@ -24,37 +24,31 @@ import {
 
 export default function OverviewPage() {
   const { systemHealth, metrics } = useDashboardStore();
-  const [auditStats, setAuditStats] = useState<any>(null);
-  const [queueHealth, setQueueHealth] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Load real data from backend
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const [stats, health] = await Promise.all([
-        AuditApiService.getAuditStats(),
-        QueueApiService.getQueueHealth(),
-      ]);
-      setAuditStats(stats);
-      setQueueHealth(health);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-      console.error('Error loading overview data:', err);
-    } finally {
-      setIsLoading(false);
-    }
+  // Use React Query hooks with automatic caching
+  const { 
+    data: auditStats, 
+    isLoading: isLoadingStats,
+    error: statsError,
+    refetch: refetchStats
+  } = useAuditDashboardStats();
+
+  const { 
+    data: queueHealth, 
+    isLoading: isLoadingHealth,
+    error: healthError,
+    refetch: refetchHealth
+  } = useQueueHealth();
+
+  // Combined loading and error states
+  const isLoading = isLoadingStats || isLoadingHealth;
+  const error = statsError || healthError;
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    refetchStats();
+    refetchHealth();
   };
-
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Auto-refresh every 60 seconds
-  useAutoRefresh(loadData, { interval: 60000 });
 
   const handleExportOverview = async (format: 'csv' | 'json' = 'csv') => {
     try {
@@ -184,7 +178,7 @@ export default function OverviewPage() {
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              <span>{error}</span>
+              <span>{error instanceof Error ? error.message : String(error)}</span>
             </div>
           </CardContent>
         </Card>
@@ -205,7 +199,7 @@ export default function OverviewPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadData}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="flex-1 sm:flex-initial min-w-[100px]"
           >

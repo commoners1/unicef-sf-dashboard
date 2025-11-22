@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth-store';
 import { Loader2 } from 'lucide-react';
+import { ROUTE_PATHS } from '@/config/routes.config';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -30,13 +31,13 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   useEffect(() => {
     if (!isChecking && !isLoading) {
       if (!isAuthenticated) {
-        navigate('/login', { replace: true });
+        navigate(ROUTE_PATHS.LOGIN, { replace: true });
         return;
       }
 
       // Check role-based access
       if (requiredRole && user?.role !== requiredRole) {
-        navigate('/unauthorized', { replace: true });
+        navigate(ROUTE_PATHS.UNAUTHORIZED, { replace: true });
         return;
       }
     }

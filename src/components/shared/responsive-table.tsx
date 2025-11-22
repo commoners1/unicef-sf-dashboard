@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { ChevronDown, ChevronUp, Eye, Copy, Trash2, Edit } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface ResponsiveTableProps {
   children: ReactNode; // Desktop table component

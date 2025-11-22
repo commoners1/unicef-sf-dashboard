@@ -56,7 +56,7 @@ export function Header({ className }: HeaderProps) {
             <Menu className="h-4 w-4" />
           </Button>
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <h1 className="text-base sm:text-lg md:text-xl font-semibold truncate max-w-[120px] sm:max-w-none">
+            <h1 className="text-base sm:text-lg md:text-xl font-semibold truncate max-w-[160px] sm:max-w-none">
               Salesforce Middleware
             </h1>
             <Badge variant="outline" className="text-xs hidden sm:inline-flex">

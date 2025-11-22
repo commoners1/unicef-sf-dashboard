@@ -267,12 +267,15 @@ export function DataTable<T extends Record<string, any>>({
   const handleClearFilters = clearFilters;
 
   const getSortIcon = (field: string) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? (
-      <SortAsc className="h-4 w-4" />
-    ) : (
-      <SortDesc className="h-4 w-4" />
-    );
+    if (sortField === field) {
+      return sortDirection === 'asc' ? (
+        <SortAsc className="h-4 w-4" />
+      ) : (
+        <SortDesc className="h-4 w-4" />
+      );
+    }
+    // Show a neutral sort icon when not sorted
+    return <SortAsc className="h-4 w-4 opacity-40" />;
   };
 
   const getFilterableColumns = () => {
@@ -621,8 +624,9 @@ export function DataTable<T extends Record<string, any>>({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0"
+                              className="h-6 w-6 p-0 hover:bg-accent"
                               onClick={() => handleSort(column.key)}
+                              title="Click to sort"
                             >
                               {getSortIcon(column.key)}
                             </Button>

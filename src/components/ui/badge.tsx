@@ -41,4 +41,5 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   );
 }
 
+// Fast Refresh: Export variants separately to avoid HMR warnings
 export { Badge, badgeVariants };

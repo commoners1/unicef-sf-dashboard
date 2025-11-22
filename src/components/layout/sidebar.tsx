@@ -94,7 +94,7 @@ const menuGroups: MenuGroup[] = [
     title: 'Reports',
     items: [
       { key: 'reports', label: 'Reports', icon: <FileText className="h-4 w-4" />, permission: 'VIEW_SYSTEM_HEALTH' },
-      { key: 'salesforce-response', label: 'Salesforce Response', icon: <Cloud className="h-4 w-4" />, isAlwaysVisible: true },
+      { key: 'salesforce-response', label: 'Salesforce Response', icon: <Workflow className="h-4 w-4" />, isAlwaysVisible: true },
     ]
   },
   {

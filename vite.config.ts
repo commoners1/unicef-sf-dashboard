@@ -1,10 +1,24 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
-export default defineConfig({
-  base: '/dashboard/',
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  // Get basename from env, default to /dashboard
+  const basename = env.VITE_ROUTER_BASENAME || '/dashboard';
+  const base = basename.endsWith('/') ? basename : `${basename}/`;
+
+  return {
+    base,
+    plugins: [
+      react({
+        // Suppress Fast Refresh warnings for variant exports (common in shadcn/ui components)
+        fastRefresh: true,
+      }),
+    ],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -44,4 +58,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 import { useDashboardStore } from '@/features/dashboard';
 import { CSRFProtection, RateLimiter, SecurityLogger, SECURITY_CONFIG, SecureStorage } from '@/lib/security-enhancements';
+import { getLoginUrl, isPublicRoute } from '@/config/routes.config';
 
 // Fallback to env var if store is not available (e.g., during SSR or initial load)
 const getDefaultBaseURL = () => {
@@ -124,9 +125,13 @@ export function createApiClient(): AxiosInstance {
           SecurityLogger.logAuthEvent('session_expired', { reason: 'refresh_failed' });
           SecureStorage.removeItem('user_profile');
           
-          // Redirect to login (AuthGuard will handle this, but we can also do it here)
-          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          // Redirect to login with correct path (using centralized config)
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            // Only redirect if not already on login/unauthorized page
+            if (!isPublicRoute(currentPath)) {
+              window.location.href = getLoginUrl();
+            }
           }
           
           return Promise.reject(refreshError);

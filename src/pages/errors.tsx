@@ -138,11 +138,11 @@ export default function ErrorsPage() {
           ? cleanErrorFilters(filters as ErrorFilters)
           : {} as ErrorFilters;
         
-        const blob = await ErrorsApiService.exportErrors(exportFilters, 'xlsx');
+        const blob = await ErrorsApiService.exportErrors(exportFilters, 'csv');
         
         const filename = includeFilters
-          ? `errors-filtered-${formatDateForFilename()}.xlsx`
-          : `errors-all-${formatDateForFilename()}.xlsx`;
+          ? `errors-filtered-${formatDateForFilename()}.csv`
+          : `errors-all-${formatDateForFilename()}.csv`;
         downloadBlob(blob, filename);
       }
     } catch (err) {

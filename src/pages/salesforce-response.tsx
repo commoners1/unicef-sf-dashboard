@@ -784,7 +784,7 @@ export default function SalesforceResponsePage() {
                               <>
                                 {statusInfo.icon}
                                 <Badge variant={statusInfo.variant} className="text-xs">
-                                  {statusInfo.label} ({selectedLog.statusCode})
+                                  {statusInfo.label}
                                 </Badge>
                               </>
                             );

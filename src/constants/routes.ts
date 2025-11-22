@@ -1,40 +1,45 @@
 /**
  * Application route constants
  * Centralized route definitions for consistency
+ * 
+ * Note: These routes use the centralized route configuration
+ * which respects the VITE_ROUTER_BASENAME environment variable
  */
+
+import { ROUTE_PATHS, getFullPath } from '@/config/routes.config';
 
 export const ROUTES = {
   // Public routes
-  LOGIN: '/login',
-  UNAUTHORIZED: '/unauthorized',
+  LOGIN: getFullPath(ROUTE_PATHS.LOGIN),
+  UNAUTHORIZED: getFullPath(ROUTE_PATHS.UNAUTHORIZED),
   NOT_FOUND: '*',
 
   // Protected routes
-  ROOT: '/',
-  OVERVIEW: '/overview',
-  DASHBOARD: '/dashboard',
-  METRICS: '/metrics',
-  API_KEYS: '/api-keys',
-  ENDPOINTS: '/endpoints',
-  USAGE_ANALYTICS: '/usage',
-  USERS: '/users',
-  USER_DETAILS: (id: string) => `/users/${id}`,
-  PERMISSIONS: '/permissions',
-  QUEUE: '/queue',
-  JOBS: '/jobs',
-  JOB_DETAILS: (id: string) => `/jobs/${id}`,
-  MONITORING: '/monitoring',
-  LOGS: '/logs',
-  AUDIT_LOGS: '/audit-logs',
-  SALESFORCE_LOGS: '/salesforce-logs',
-  CRON_JOBS: '/cron-jobs',
-  ERRORS: '/errors',
-  ERROR_DETAILS: (id: string) => `/errors/${id}`,
-  PERFORMANCE: '/performance',
-  REPORTS: '/reports',
-  SETTINGS: '/settings',
-  NOTIFICATIONS: '/notifications',
-  SALESFORCE_RESPONSE: '/salesforce-response',
+  ROOT: getFullPath(ROUTE_PATHS.ROOT),
+  OVERVIEW: getFullPath(ROUTE_PATHS.OVERVIEW),
+  DASHBOARD: getFullPath(ROUTE_PATHS.DASHBOARD),
+  METRICS: getFullPath(ROUTE_PATHS.METRICS),
+  API_KEYS: getFullPath(ROUTE_PATHS.API_KEYS),
+  ENDPOINTS: getFullPath(ROUTE_PATHS.ENDPOINTS),
+  USAGE_ANALYTICS: getFullPath(ROUTE_PATHS.USAGE_ANALYTICS),
+  USERS: getFullPath(ROUTE_PATHS.USERS),
+  USER_DETAILS: (id: string) => getFullPath(ROUTE_PATHS.USER_DETAILS(id)),
+  PERMISSIONS: getFullPath(ROUTE_PATHS.PERMISSIONS),
+  QUEUE: getFullPath(ROUTE_PATHS.QUEUE),
+  JOBS: getFullPath(ROUTE_PATHS.JOBS),
+  JOB_DETAILS: (id: string) => getFullPath(ROUTE_PATHS.JOB_DETAILS(id)),
+  MONITORING: getFullPath(ROUTE_PATHS.MONITORING),
+  LOGS: getFullPath(ROUTE_PATHS.LOGS),
+  AUDIT_LOGS: getFullPath(ROUTE_PATHS.AUDIT_LOGS),
+  SALESFORCE_LOGS: getFullPath(ROUTE_PATHS.SALESFORCE_LOGS),
+  CRON_JOBS: getFullPath(ROUTE_PATHS.CRON_JOBS),
+  ERRORS: getFullPath(ROUTE_PATHS.ERRORS),
+  ERROR_DETAILS: (id: string) => getFullPath(ROUTE_PATHS.ERROR_DETAILS(id)),
+  PERFORMANCE: getFullPath(ROUTE_PATHS.PERFORMANCE),
+  REPORTS: getFullPath(ROUTE_PATHS.REPORTS),
+  SETTINGS: getFullPath(ROUTE_PATHS.SETTINGS),
+  NOTIFICATIONS: getFullPath(ROUTE_PATHS.NOTIFICATIONS),
+  SALESFORCE_RESPONSE: getFullPath(ROUTE_PATHS.SALESFORCE_RESPONSE),
 } as const;
 
 /**
