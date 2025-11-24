@@ -5,71 +5,98 @@ A comprehensive admin dashboard for the Salesforce Middleware API, built with Re
 ## 🚀 Features
 
 ### ✅ Implemented
-- **Dashboard Overview** - System health monitoring with real-time metrics
-- **User Management** - Complete user and API key management interface
+- **Dashboard Overview** - System health monitoring with real-time metrics and KPIs
+- **User Management** - Complete user and API key management interface with role-based access control
 - **Queue Management** - Monitor and control background job processing
+- **Jobs Management** - Detailed job tracking and job details view
+- **Cron Jobs** - Monitor and manage scheduled Salesforce cron jobs (pledge and one-off)
+- **Endpoint Management** - Comprehensive API endpoint documentation and monitoring
+- **Audit Logs** - Complete audit trail with filtering and search capabilities
+- **Salesforce Logs** - Monitor Salesforce integration logs and responses
 - **Live Logs** - Real-time log streaming with filtering and search
+- **Error Tracking** - Error tracking dashboard (SUPER_ADMIN only) with detailed error views
+- **Usage Analytics** - API usage statistics, hourly trends, and top endpoints
+- **Performance Monitoring** - System performance metrics and queue health monitoring
+- **Reports** - Generate and export system reports
+- **Permissions Management** - Role-based access control (RBAC) management
 - **Environment Switching** - Seamlessly switch between staging and production
+- **Export Features** - Export data in CSV and JSON formats
 - **Responsive Design** - Works on desktop, tablet, and mobile devices
 - **Dark/Light Theme** - Toggle between themes
 - **Modern UI** - Built with shadcn/ui components and Tailwind CSS
-
-### 🔄 In Progress
-- **Authentication System** - JWT-based authentication
-- **API Management** - Endpoint monitoring and configuration
+- **Secure Storage** - AES-GCM encryption for sensitive data storage
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** - Modern React with hooks
-- **TypeScript** - Type-safe development
-- **Vite** - Fast build tool and dev server
-- **Tailwind CSS** - Utility-first CSS framework
+- **React 19** - Latest React with hooks and concurrent features
+- **TypeScript 5.9** - Type-safe development
+- **Vite 7** - Fast build tool and dev server
+- **Tailwind CSS 3.4** - Utility-first CSS framework
 - **shadcn/ui** - High-quality UI components
 - **Radix UI** - Accessible component primitives
 - **Lucide React** - Beautiful icons
 
 ### State Management
-- **Zustand** - Lightweight state management
-- **React Query** - Server state management and caching
+- **Zustand 5** - Lightweight state management
+- **React Query (TanStack Query) 5** - Server state management and caching
 
 ### Charts & Visualization
-- **Recharts** - Composable charting library
-- **ECharts** - Powerful charting library
+- **Recharts 3** - Composable charting library
 
-### Forms & Validation
-- **React Hook Form** - Performant forms
-- **Zod** - TypeScript-first schema validation
+### Utilities
+- **Axios 1.13** - HTTP client for API requests
+- **date-fns 4** - Date utility library
+- **ExcelJS 4** - Excel file generation for exports
+- **Sonner** - Toast notifications
 
-### Real-time Features
-- **Socket.io Client** - Real-time communication (ready for implementation)
+### Security
+- **Web Crypto API** - AES-GCM encryption for secure data storage
+- **HttpOnly Cookies** - Secure session management
 
 ## 📁 Project Structure
 
 ```
 src/
-├── components/           # Reusable UI components
-│   ├── ui/              # Base UI components (shadcn/ui)
-│   ├── layout/          # Layout components
-│   ├── dashboard/       # Dashboard-specific components
-│   └── tables/          # Table components
-├── pages/               # Page components
-│   ├── overview.tsx     # Dashboard overview
-│   ├── users.tsx        # User management
-│   ├── queue.tsx        # Queue management
-│   └── logs.tsx         # Live logs
-├── stores/              # Zustand stores
-├── types/               # TypeScript type definitions
-├── config/              # Configuration files
-├── lib/                 # Utility functions
-└── hooks/               # Custom React hooks
+├── app/                 # App configuration and providers
+├── components/          # Reusable UI components
+│   ├── ui/             # Base UI components (shadcn/ui)
+│   ├── layout/         # Layout components (header, sidebar, footer)
+│   ├── shared/         # Shared components (tables, filters, etc.)
+│   └── tables/         # Table components
+├── features/           # Feature-based modules
+│   ├── auth/           # Authentication feature
+│   ├── dashboard/      # Dashboard feature
+│   └── users/          # User management feature
+├── pages/              # Page components
+│   ├── overview.tsx    # Dashboard overview
+│   ├── dashboard.tsx   # Main dashboard
+│   ├── users.tsx       # User management
+│   ├── queue-simple.tsx # Queue management
+│   ├── jobs.tsx        # Jobs management
+│   ├── cron-jobs.tsx   # Cron jobs management
+│   ├── endpoints.tsx   # Endpoint documentation
+│   ├── audit-logs.tsx  # Audit logs
+│   ├── errors.tsx      # Error tracking
+│   └── ...             # Other pages
+├── hooks/              # Custom React hooks
+│   └── queries/        # React Query hooks
+├── services/           # API services
+│   └── api/            # API client services
+├── stores/             # Zustand stores
+├── types/              # TypeScript type definitions
+├── config/             # Configuration files
+├── constants/          # Application constants
+├── lib/                # Utility functions and libraries
+├── router/             # Routing configuration
+└── utils/              # Utility functions
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js 18+ 
-- npm 8+
+- npm 8+ or pnpm/yarn
 
 ### Installation
 
@@ -126,9 +153,8 @@ Create a `.env.local` file:
 
 ```bash
 VITE_API_URL=http://localhost:3000
-VITE_WS_URL=ws://localhost:3000
 VITE_APP_TITLE=SF Middleware Dashboard
-VITE_APP_VERSION=1.1.0
+VITE_APP_VERSION=1.3.0
 ```
 
 ### Environment Switching
@@ -143,29 +169,65 @@ Switch environments using the environment selector in the header.
 
 ## 📊 Dashboard Pages
 
-### Overview
+### Overview & Dashboard
 - System health status cards
 - Key metrics and KPIs
 - Real-time charts and graphs
 - Queue status overview
+- Performance metrics
 
 ### User Management
 - User list with search and filtering
-- Role-based access control
+- User details and profile management
+- Role-based access control (RBAC)
 - API key management
-- User statistics
+- User statistics and activity
 
-### Queue Management
+### Queue & Jobs Management
 - Queue status monitoring
 - Job processing controls
 - Failed job retry
 - Queue performance metrics
+- Detailed job views
+- Job history tracking
 
-### Live Logs
-- Real-time log streaming
-- Log level filtering
-- Search functionality
-- Export capabilities
+### Cron Jobs
+- Monitor pledge cron jobs
+- Track one-off cron job execution
+- View undelivered cron job items
+- Salesforce cron job integration
+
+### Endpoints
+- Comprehensive API endpoint documentation
+- Endpoint categorization and filtering
+- Authentication requirements display
+- Method and path information
+
+### Logs & Monitoring
+- **Audit Logs** - Complete audit trail with advanced filtering
+- **Salesforce Logs** - Monitor Salesforce integration activity
+- **Live Logs** - Real-time log streaming
+- **Monitoring** - System health and performance monitoring
+- Log level filtering and search functionality
+- Export capabilities (CSV, JSON)
+
+### Error Tracking (SUPER_ADMIN only)
+- Error dashboard with detailed error information
+- Error details view with full context
+- Error filtering and search
+- Mobile-optimized error displays
+
+### Analytics & Reports
+- **Usage Analytics** - API usage statistics, hourly trends
+- **Performance** - System performance metrics
+- **Reports** - Generate and export system reports
+- Top endpoints and user activity tracking
+
+### Administration
+- **Permissions** - Role-based access control management
+- **API Keys** - API key management interface
+- **Settings** - System configuration
+- **Notifications** - Notification management
 
 ## 🎯 Key Features
 
@@ -189,10 +251,32 @@ Switch environments using the environment selector in the header.
 
 ## 🔒 Security
 
-- JWT-based authentication (ready for implementation)
-- Role-based access control
-- API key management
+### Authentication & Authorization
+- **JWT-based authentication** - Secure token-based authentication
+- **Role-based access control (RBAC)** - Fine-grained permission system
+- **HttpOnly Cookies** - Secure session management
+- **API key management** - Secure API key generation and rotation
+
+### Data Security
+- **AES-GCM encryption** - All sensitive data encrypted using Web Crypto API (256-bit)
+- **Secure storage** - Minimal data storage with automatic encryption
+- **Data minimization** - Only non-sensitive data stored locally
+- **Session timeout** - Automatic cleanup after 30 minutes of inactivity
+- **Complete logout** - Secure cleanup of all authentication data
+
+### Security Features
+- Comprehensive input validation and sanitization
+- CSRF protection for state-changing operations
+- Client-side rate limiting
+- Security event logging
+- Enhanced error handling
 - Secure environment switching
+
+### Security Improvements (v1.3.0)
+- Removed sensitive data (email, roles) from localStorage
+- Implemented automatic storage migration for encrypted data
+- Added session timeout protection
+- Enhanced mobile security for error tracking
 
 ## 🚀 Deployment
 
@@ -232,7 +316,9 @@ npm run build
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
+
+**Author:** Freyza Kusuma
 
 ## 🆘 Support
 
@@ -242,25 +328,38 @@ For support and questions:
 - Check the documentation
 - Review the code examples
 
-## 🔄 Roadmap
+## 📚 Documentation
 
-### Phase 1 (Completed)
-- ✅ Basic dashboard structure
-- ✅ User management
-- ✅ Queue management
-- ✅ Live logs
-- ✅ Environment switching
+Comprehensive documentation is available in the `docs/` directory, organized by category:
 
-### Phase 2 (In Progress)
-- 🔄 Authentication system
-- 🔄 API management pages
-- 🔄 Real-time WebSocket integration
+- **[Documentation Index](./docs/README.md)** - Start here for navigation
+- **User Guides** - `docs/user/` - Admin guides and feature documentation
+- **Development** - `docs/development/` - Architecture, structure, testing guides
+- **Deployment** - `docs/deployment/` - Environment setup and deployment guides
+- **API** - `docs/api/` - API integration documentation
+- **Security** - `docs/security/` - Security assessments and best practices
 
-### Phase 3 (Planned)
-- 📋 Advanced analytics
-- 📋 Custom reporting
-- 📋 Notification system
-- 📋 Audit trails
+For detailed changelog and release notes, see [CHANGELOG.md](./CHANGELOG.md).
+
+## 📝 Version Information
+
+Current version: **1.3.0** (as of November 2025)
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes and changes.
+
+## 🔄 Recent Updates (v1.3.0)
+
+### Security Enhancements
+- ✅ AES-GCM encryption for all stored data
+- ✅ Removed sensitive data from localStorage
+- ✅ Session timeout protection
+- ✅ Automatic storage migration
+
+### Features
+- ✅ Error tracking dashboard (SUPER_ADMIN only)
+- ✅ Cron jobs management
+- ✅ Enhanced mobile responsiveness
+- ✅ Improved export capabilities
 
 ---
 
