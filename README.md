@@ -251,6 +251,8 @@ Switch environments using the environment selector in the header.
 
 ## 🔒 Security
 
+For comprehensive security information, see **[SECURITY.md](./SECURITY.md)**.
+
 ### Authentication & Authorization
 - **JWT-based authentication** - Secure token-based authentication
 - **Role-based access control (RBAC)** - Fine-grained permission system
