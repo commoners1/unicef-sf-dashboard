@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => {
           radix: ['@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
           charts: ['recharts'],
           utils: ['clsx', 'tailwind-merge', 'class-variance-authority'],
+          excel: ['exceljs'],
         },
       },
     },

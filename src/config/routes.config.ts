@@ -98,3 +98,35 @@ export function isPublicRoute(pathname: string): boolean {
          pathname.includes('/unauthorized');
 }
 
+/**
+ * Route to page title mapping
+ * Uses full paths to handle basename correctly
+ */
+export const ROUTE_TITLES: Record<string, string> = {
+  [getFullPath(ROUTE_PATHS.ROOT)]: 'Overview',
+  [getFullPath(ROUTE_PATHS.OVERVIEW)]: 'Overview',
+  [getFullPath(ROUTE_PATHS.DASHBOARD)]: 'Dashboard',
+  [getFullPath(ROUTE_PATHS.METRICS)]: 'Key Metrics',
+  [getFullPath(ROUTE_PATHS.API_KEYS)]: 'API Keys',
+  [getFullPath(ROUTE_PATHS.ENDPOINTS)]: 'Endpoints',
+  [getFullPath(ROUTE_PATHS.USAGE_ANALYTICS)]: 'Usage Analytics',
+  [getFullPath(ROUTE_PATHS.USERS)]: 'Users',
+  [getFullPath(ROUTE_PATHS.PERMISSIONS)]: 'Permissions',
+  [getFullPath(ROUTE_PATHS.QUEUE)]: 'Queue Management',
+  [getFullPath(ROUTE_PATHS.JOBS)]: 'Job Details',
+  [getFullPath(ROUTE_PATHS.MONITORING)]: 'Real-time Monitor',
+  [getFullPath(ROUTE_PATHS.LOGS)]: 'Live Logs',
+  [getFullPath(ROUTE_PATHS.AUDIT_LOGS)]: 'Audit Trail',
+  [getFullPath(ROUTE_PATHS.SALESFORCE_LOGS)]: 'Salesforce Logs',
+  [getFullPath(ROUTE_PATHS.CRON_JOBS)]: 'Cron Jobs',
+  [getFullPath(ROUTE_PATHS.ERRORS)]: 'Error Tracking',
+  [getFullPath(ROUTE_PATHS.PERFORMANCE)]: 'Performance',
+  [getFullPath(ROUTE_PATHS.REPORTS)]: 'Reports',
+  [getFullPath(ROUTE_PATHS.SALESFORCE_RESPONSE)]: 'Salesforce Response',
+  [getFullPath(ROUTE_PATHS.SETTINGS)]: 'Settings',
+  [getFullPath(ROUTE_PATHS.NOTIFICATIONS)]: 'Notifications',
+  [getFullPath(ROUTE_PATHS.LOGIN)]: 'Login',
+  [getFullPath(ROUTE_PATHS.UNAUTHORIZED)]: 'Unauthorized',
+  '*': 'Not Found',
+};
+

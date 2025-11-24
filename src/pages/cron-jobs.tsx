@@ -24,11 +24,11 @@ import {
 import { toast } from 'sonner';
 
 const CronJobsPage = () => {
-  const [pagination, setPagination] = useState({
+  const [pagination, _setPagination] = useState({
     page: 1,
     limit: 10,
   });
-  const [historyPagination, setHistoryPagination] = useState({
+  const [historyPagination, _setHistoryPagination] = useState({
     page: 1,
     limit: 10,
   });

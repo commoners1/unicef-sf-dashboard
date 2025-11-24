@@ -885,9 +885,6 @@ export default function EndpointsPage() {
     { value: 'system', label: 'System', icon: Activity, includes: ['System', 'Cron Jobs', 'Errors', 'Reports'] },
   ];
 
-  const filteredEndpoints = (categoryIncludes: string[]) => 
-    endpoints.filter(ep => categoryIncludes.includes(ep.category));
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">

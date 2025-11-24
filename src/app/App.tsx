@@ -1,5 +1,5 @@
 import { Providers } from './providers';
-import { AppRouter } from './router';
+import { AppRouter } from '@/router';
 import { usePageTitle } from '@/hooks/use-page-title';
 
 // Component to handle page title updates for all routes

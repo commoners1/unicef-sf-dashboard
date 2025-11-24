@@ -1,20 +1,24 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ROUTE_TITLES } from '@/constants';
+import { ROUTE_TITLES, ROUTE_PATHS, getFullPath } from '@/config/routes.config';
 
 // Get site name from environment or use default
 const SITE_NAME = import.meta.env.VITE_APP_TITLE || 'SF Middleware Dashboard';
 
 // Helper function to get page title from route
 const getPageTitle = (pathname: string): string => {
+  const usersPath = getFullPath(ROUTE_PATHS.USERS);
+  const jobsPath = getFullPath(ROUTE_PATHS.JOBS);
+  const errorsPath = getFullPath(ROUTE_PATHS.ERRORS);
+  
   // Check for dynamic routes
-  if (pathname.startsWith('/users/') && pathname !== '/users') {
+  if (pathname.startsWith(`${usersPath}/`) && pathname !== usersPath) {
     return 'User Details';
   }
-  if (pathname.startsWith('/jobs/') && pathname !== '/jobs') {
+  if (pathname.startsWith(`${jobsPath}/`) && pathname !== jobsPath) {
     return 'Job Details';
   }
-  if (pathname.startsWith('/errors/') && pathname !== '/errors') {
+  if (pathname.startsWith(`${errorsPath}/`) && pathname !== errorsPath) {
     return 'Error Details';
   }
 
