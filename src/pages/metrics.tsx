@@ -168,7 +168,13 @@ export default function MetricsPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{calculatedMetrics.responseTime.current}ms</div>
+            <div className="text-2xl font-bold">{(calculatedMetrics.responseTime.current).toLocaleString(
+              'id-ID', 
+              { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2 
+              }
+            )}</div>
             <div className="flex items-center space-x-1 text-xs">
               {getTrendIcon(calculatedMetrics.responseTime.trend)}
               <span className={getTrendColor(calculatedMetrics.responseTime.trend)}>
@@ -189,7 +195,13 @@ export default function MetricsPage() {
             <div className="flex items-center space-x-1 text-xs">
               {getTrendIcon(calculatedMetrics.throughput.trend)}
               <span className={getTrendColor(calculatedMetrics.throughput.trend)}>
-                +{calculatedMetrics.throughput.current - calculatedMetrics.throughput.previous}
+                +{(calculatedMetrics.throughput.current - calculatedMetrics.throughput.previous).toLocaleString(
+                  'id-ID', 
+                  { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 2 
+                  }
+                )}
               </span>
               <span className="text-muted-foreground">vs last period</span>
             </div>
@@ -223,7 +235,13 @@ export default function MetricsPage() {
             <div className="flex items-center space-x-1 text-xs">
               {getTrendIcon(calculatedMetrics.uptime.trend)}
               <span className={getTrendColor(calculatedMetrics.uptime.trend)}>
-                +{calculatedMetrics.uptime.current - calculatedMetrics.uptime.previous}%
+                +{(calculatedMetrics.uptime.current - calculatedMetrics.uptime.previous).toLocaleString(
+                  'id-ID', 
+                  { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 2 
+                  }
+                )}%
               </span>
               <span className="text-muted-foreground">vs last period</span>
             </div>

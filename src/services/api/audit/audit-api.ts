@@ -11,7 +11,16 @@ export class AuditApiService {
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        params.append(key, value.toString());
+        // Handle columnFilters - serialize as JSON string
+        if (key === 'columnFilters' && typeof value === 'object') {
+          params.append(key, JSON.stringify(value));
+        }
+        // Handle boolean values - convert to string explicitly
+        else if (typeof value === 'boolean') {
+          params.append(key, value ? 'true' : 'false');
+        } else {
+          params.append(key, value.toString());
+        }
       }
     });
 

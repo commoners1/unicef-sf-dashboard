@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {

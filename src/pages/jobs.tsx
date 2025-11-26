@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,17 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { PageLoading } from '@/components/ui/loading';
 import { usePaginatedFetch } from '@/hooks';
 import { QueueApiService, type Job, type JobFilters } from '@/services/api/queue/queue-api';
-import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
+import { getApiErrorMessage, downloadJSON } from '@/lib/utils';
+import { handleExport as handleExportUtil } from '@/lib/exports/export-handler';
+import { jobsExportColumns } from '@/lib/exports/export-columns/jobs-export-columns';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { startOfDay, isAfter, isBefore } from 'date-fns';
+import { formatGMT7, formatGMT7Date, convertDateFilterToUTC, convertEndDateFilterToUTC } from '@/lib/utils/timezone.util';
 import { 
   FileText, 
   Clock, 
@@ -26,7 +36,50 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function JobsPage() {
+  // Error state
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Filter state
+  const [jobNameFilter, setJobNameFilter] = useState<string>('');
+  const [queueFilter, setQueueFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  const buildFilters = useCallback((): JobFilters => {
+    const newFilters: JobFilters = {};
+    
+    // Job Name filter (using search)
+    if (jobNameFilter && jobNameFilter.trim() !== '') {
+      newFilters.search = jobNameFilter.trim();
+    }
+
+    // Queue filter
+    if (queueFilter && queueFilter !== 'all') {
+      newFilters.queue = queueFilter;
+    }
+
+    // Status filter
+    if (statusFilter && statusFilter !== 'all') {
+      newFilters.status = statusFilter;
+    }
+
+    // Date filter
+    if (startDate) {
+      // Convert GMT+7 date to UTC for backend
+      newFilters.startDate = convertDateFilterToUTC(startDate);
+    }
+    if (endDate) {
+      // Convert GMT+7 end date to UTC (inclusive of full day)
+      newFilters.endDate = convertEndDateFilterToUTC(endDate);
+    }
+
+    return newFilters;
+  }, [jobNameFilter, queueFilter, statusFilter, startDate, endDate]);
 
   // Use the new paginated fetch hook
   const {
@@ -35,42 +88,30 @@ export default function JobsPage() {
     error: fetchError,
     pagination,
     filters,
-    setFilters,
+    setFilters: setBaseFilters,
     handlePageChange,
     handlePageSizeChange,
     handleRefresh,
   } = usePaginatedFetch<Job>({
-    fetchFn: QueueApiService.getJobs,
+    fetchFn: useCallback(async (filters) => {
+      const dateFilters = buildFilters();
+      return QueueApiService.getJobs({
+        ...filters,
+        ...dateFilters,
+      });
+    }, [buildFilters]),
     initialFilters: {} as JobFilters,
     initialPageSize: 10,
     autoFetch: true,
     dataKey: 'data',
   });
 
+  useEffect(() => {
+    handleRefresh();
+  }, [startDate, endDate, jobNameFilter, queueFilter, statusFilter]);
+
   const handleView = (_job: Job) => {
     // TODO: Open job details modal
-  };
-
-  const handleRetry = async (job: Job) => {
-    try {
-      setActionError(null);
-      await QueueApiService.retryJob(job.id);
-      await handleRefresh(); // Refresh the list after retry
-    } catch (err) {
-      console.error('Retry failed:', err);
-      setActionError(getApiErrorMessage(err));
-    }
-  };
-
-  const handleRemove = async (job: Job) => {
-    try {
-      setActionError(null);
-      await QueueApiService.removeJob(job.id);
-      await handleRefresh(); // Refresh the list after removal
-    } catch (err) {
-      console.error('Remove failed:', err);
-      setActionError(getApiErrorMessage(err));
-    }
   };
 
   // Helper function to clean filters - remove undefined/null/empty values and pagination fields
@@ -102,35 +143,74 @@ export default function JobsPage() {
       setActionError(null);
       if (job) {
         downloadJSON(job, `job-${job.id}`);
-      } else {
-        // If includeFilters is false, use empty filters to export all data
-        // If true, clean filters to remove pagination fields and undefined values
-        const exportFilters = includeFilters 
-          ? cleanJobFilters(filters as JobFilters)
-          : {} as JobFilters;
-        
-        const blob = await QueueApiService.exportJobs(exportFilters, 'xlsx');
-        
-        const filename = includeFilters
-          ? `jobs-filtered-${formatDateForFilename()}.xlsx`
-          : `jobs-all-${formatDateForFilename()}.xlsx`;
-        downloadBlob(blob, filename);
+        return;
       }
+
+      setExporting(true);
+      setExportProgress(null);
+
+      const dateFilters = buildFilters();
+      const serverFilters = includeFilters 
+        ? {
+            ...filters,
+            ...dateFilters,
+          }
+        : {};
+
+      await handleExportUtil({
+        fetchFn: QueueApiService.getJobs,
+        dataKey: 'data',
+        exportColumns: jobsExportColumns,
+        cleanFilters: cleanJobFilters,
+        filenamePrefix: 'jobs',
+        includeFilters,
+        serverFilters,
+        onProgress: (progress) => setExportProgress(progress),
+        onError: (error) => setActionError(getApiErrorMessage(error)),
+      });
     } catch (err) {
-      console.error('Export failed:', err);
-      setActionError(getApiErrorMessage(err));
+      // Error already handled by onError callback
+    } finally {
+      setExporting(false);
+      setExportProgress(null);
     }
   };
 
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const clearFilters = useCallback(() => {
+    setJobNameFilter('');
+    setQueueFilter('all');
+    setStatusFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setBaseFilters({});
+  }, [setBaseFilters]);
+
+  // Check if custom filters are active
+  const hasCustomFiltersActive = jobNameFilter.trim() !== '' || 
+                                  queueFilter !== 'all' || 
+                                  statusFilter !== 'all' || 
+                                  startDate !== undefined || 
+                                  endDate !== undefined;
+
   // Handle filter change
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters as JobFilters);
+  const handleFilterChange = (newFilters: JobFilters) => {
+    const isEmpty = Object.keys(newFilters).length === 0 || 
+                    Object.values(newFilters).every(v => v === undefined || v === '' || v === null || (typeof v === 'object' && Object.keys(v).length === 0));
+    if (isEmpty) {
+      clearFilters();
+    } else {
+      setBaseFilters(newFilters);
+    }
   };
 
   // Handle search
   const handleSearch = (searchTerm: string) => {
-    const newFilters = { ...filters, search: searchTerm };
-    setFilters(newFilters as JobFilters);
+    setJobNameFilter(searchTerm);
   };
 
   const columns: Column<Job>[] = [
@@ -231,7 +311,7 @@ export default function JobsPage() {
       render: (_, job) => {
         const attempts = job.attemptsMade || 0;
         return (
-          <div className="text-center">
+          <div className="text-left">
             <div className="font-bold">{attempts}</div>
             {attempts > 1 && (
               <div className="text-xs text-muted-foreground">Retries</div>
@@ -270,7 +350,7 @@ export default function JobsPage() {
         const createdAt = job.createdAt || new Date().toISOString();
         return (
           <div className="text-sm">
-            {new Date(createdAt).toLocaleString()}
+            {formatGMT7(createdAt)}
           </div>
         );
       },
@@ -309,19 +389,23 @@ export default function JobsPage() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
-                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-                <span className="sm:hidden">Export</span>
-                <ChevronDown className="ml-1 h-3 w-3" />
+              <Button size="sm" disabled={loading || exporting} className="flex-1 sm:flex-initial min-w-[100px]">
+                {exporting ? (
+                  <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 animate-spin`} />
+                ) : (
+                  <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+                <span className="sm:hidden">{exporting ? '...' : 'Export'}</span>
+                {!exporting && <ChevronDown className="ml-1 h-3 w-3" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading || exporting}>
                 <Download className="mr-2 h-4 w-4" />
                 Export All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading || exporting}>
                 <Filter className="mr-2 h-4 w-4" />
                 Export Filtered
               </DropdownMenuItem>
@@ -342,6 +426,22 @@ export default function JobsPage() {
         </div>
       )}
 
+      {/* Export Progress Indicator */}
+      {exporting && exportProgress && (
+        <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Exporting data...</span>
+            <span className="text-muted-foreground">
+              {exportProgress.current} / {exportProgress.total}
+            </span>
+          </div>
+          <Progress 
+            value={(exportProgress.current / exportProgress.total) * 100} 
+            className="h-2" 
+          />
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -349,7 +449,7 @@ export default function JobsPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
+            <div className="text-2xl font-bold">{(pagination.total).toLocaleString('id-ID')}</div>
             <p className="text-xs text-muted-foreground">
               All time jobs
             </p>
@@ -362,7 +462,7 @@ export default function JobsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {jobs.filter(j => (j.status || 'unknown') === 'completed').length}
+              {jobs.filter(j => (j.status || 'unknown') === 'completed').length.toLocaleString('id-ID')}
             </div>
             <p className="text-xs text-muted-foreground">
               Successfully finished
@@ -376,7 +476,7 @@ export default function JobsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {jobs.filter(j => (j.status || 'unknown') === 'active').length}
+              {jobs.filter(j => (j.status || 'unknown') === 'active').length.toLocaleString('id-ID')}
             </div>
             <p className="text-xs text-muted-foreground">
               Currently running
@@ -390,7 +490,7 @@ export default function JobsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {jobs.filter(j => (j.status || 'unknown') === 'failed').length}
+              {jobs.filter(j => (j.status || 'unknown') === 'failed').length.toLocaleString('id-ID')}
             </div>
             <p className="text-xs text-muted-foreground">
               Need attention
@@ -418,21 +518,122 @@ export default function JobsPage() {
             handlePageChange(page);
           }
         }}
-        onSort={(_field, _direction) => {
-          // TODO: Implement sorting
+        onSort={(field, direction) => {
+          const newFilters = { ...filters, sortBy: field, sortOrder: direction };
+          setBaseFilters(newFilters as JobFilters);
         }}
         onFilter={handleFilterChange}
         onSearch={handleSearch}
-        searchValue={filters?.search || ''}
-        searchPlaceholder="Search jobs by name, type, or status..."
+        searchValue={jobNameFilter}
+        searchPlaceholder="Search jobs by name..."
         actions={{
           view: handleView,
-          edit: handleRetry,
-          delete: handleRemove,
-          export: handleExport,
         }}
         rowKey="id"
         emptyMessage="No jobs found"
+        showSelectionFilters={true}
+        showSearchFilter={false}
+        hasCustomFiltersActive={hasCustomFiltersActive}
+        customFilters={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Job Name Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Job Name</label>
+              <Input
+                type="text"
+                value={jobNameFilter}
+                onChange={(e) => setJobNameFilter(e.target.value)}
+                placeholder="Filter by Job Name"
+                className="w-full"
+              />
+            </div>
+
+            {/* Queue Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Queue</label>
+              <Select value={queueFilter} onValueChange={setQueueFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select queue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="salesforce">Salesforce</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="notifications">Notifications</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="waiting">Waiting</SelectItem>
+                  <SelectItem value="delayed">Delayed</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Start Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? formatGMT7Date(startDate) : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => handleDateRangeChange(date, endDate)}
+                    disabled={(date) => isAfter(startOfDay(date), startOfDay(new Date()))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* End Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">End Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? formatGMT7Date(endDate) : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => handleDateRangeChange(startDate, date)}
+                    disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      const selectedDate = startOfDay(date);
+                      if (isAfter(selectedDate, today)) return true;
+                      if (startDate && isBefore(selectedDate, startOfDay(startDate))) return true;
+                      return false;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        }
       />
     </div>
   );

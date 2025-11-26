@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, addDays, startOfDay, isAfter, isBefore } from 'date-fns';
+import { startOfDay, isAfter, isBefore } from 'date-fns';
+import { formatGMT7, formatGMT7Date, convertDateFilterToUTC, convertEndDateFilterToUTC } from '@/lib/utils/timezone.util';
 import { 
   RefreshCw, 
   Eye,
@@ -35,15 +36,15 @@ import { SalesforceLogsApiService } from '@/services/api/salesforce-logs/salesfo
 import { 
   getStatusClassification, 
   getMethodBadgeColor,
-  filterByResponseType, 
-  filterByEndpointStatus,
   type ResponseTypeFilter,
   type EndpointStatusFilter 
 } from '@/utils';
+import { ColumnFilterBuilder, type ColumnFilters } from '@/types/column-filters';
 import { ErrorDisplay } from '@/components/shared';
-import { getApiErrorMessage, downloadBlob, formatDateForFilename } from '@/lib/utils';
-import { ExportApiService } from '@/services/api/export/export-api';
+import { getApiErrorMessage } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { handleExport as handleExportUtil } from '@/lib/exports/export-handler';
+import { salesforceResponseExportColumns } from '@/lib/exports/export-columns/salesforce-response-export-columns';
 
 export default function SalesforceResponsePage() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
@@ -58,33 +59,68 @@ export default function SalesforceResponsePage() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
 
-  // Build filters function that includes date range - memoized to ensure latest values
   const buildFilters = useCallback((): AuditLogFilters => {
     const newFilters: AuditLogFilters = {};
     if (startDate) {
-      // Format date in local timezone to avoid UTC conversion issues
-      newFilters.startDate = format(startDate, 'yyyy-MM-dd');
+      // Convert GMT+7 date to UTC for backend
+      newFilters.startDate = convertDateFilterToUTC(startDate);
     }
     if (endDate) {
-      // Add one day to endDate to ensure the backend includes the full selected day
-      // This handles cases where the backend treats endDate as exclusive
-      // e.g., if user selects Nov 21, we send endDate as Nov 22
-      // Backend will include all records up to (but not including) Nov 22, which includes all of Nov 21
-      const endDatePlusOne = addDays(endDate, 1);
-      newFilters.endDate = format(endDatePlusOne, 'yyyy-MM-dd');
+      // Convert GMT+7 end date to UTC (inclusive of full day)
+      newFilters.endDate = convertEndDateFilterToUTC(endDate);
     }
-    return newFilters;
-  }, [startDate, endDate]);
 
-  // Check if client-side filters are active
-  const hasClientSideFilters = responseTypeFilter !== 'all' || endpointStatusFilter !== 'all';
+    const columnFilters: ColumnFilters = {};
+
+    if (responseTypeFilter !== 'all') {
+      let types: string[] = [];
+      switch (responseTypeFilter) {
+        case 'monthly':
+          types = ['post-monthly', 'pledge'];
+          break;
+        case 'oneoff':
+          types = ['post-oneoff', 'oneoff'];
+          break;
+        case 'payment-link':
+          types = ['payment-link'];
+          break;
+        case 'charge':
+          types = ['charge'];
+          break;
+      }
+      if (types.length > 0) {
+        columnFilters.type = ColumnFilterBuilder.responseType(types);
+      }
+    }
+
+    // Endpoint Status filter
+    if (endpointStatusFilter !== 'all') {
+      switch (endpointStatusFilter) {
+        case 'success':
+          columnFilters.statusCode = ColumnFilterBuilder.statusCodeRange(200, 299);
+          break;
+        case 'client-error':
+          columnFilters.statusCode = ColumnFilterBuilder.statusCodeRange(400, 499);
+          break;
+        case 'server-error':
+          columnFilters.statusCode = ColumnFilterBuilder.statusCodeRange(500, 599);
+          break;
+      }
+    }
+
+    if (Object.keys(columnFilters).length > 0) {
+      newFilters.columnFilters = columnFilters;
+    }
+
+    return newFilters;
+  }, [startDate, endDate, responseTypeFilter, endpointStatusFilter]);
 
   // Use the new paginated fetch hook
   const {
-    data: rawLogs,
+    data: logs,
     loading,
     error: fetchError,
-    pagination: rawPagination,
+    pagination,
     filters,
     setFilters: setBaseFilters,
     handlePageChange,
@@ -92,66 +128,18 @@ export default function SalesforceResponsePage() {
     handleRefresh,
   } = usePaginatedFetch<AuditLog>({
     fetchFn: useCallback(async (filters) => {
-      const dateFilters = buildFilters();
-      
-      // When client-side filters are active, don't send search to server
-      // Search will be applied on client side after client-side filters
-      // This ensures search works on the filtered dataset, not the full dataset
-      const serverFilters = { ...filters };
-      if (hasClientSideFilters && serverFilters.search) {
-        delete serverFilters.search;
-      }
+      const dateAndColumnFilters = buildFilters();
       
       return SalesforceLogsApiService.getSalesforceLogs({
-        ...serverFilters,
-        ...dateFilters,
+        ...filters,
+        ...dateAndColumnFilters,
       });
-    }, [buildFilters, hasClientSideFilters]),
+    }, [buildFilters]),
     initialFilters: {} as AuditLogFilters,
     initialPageSize: 10,
     autoFetch: true,
     dataKey: 'logs', // API returns 'logs' instead of 'data'
   });
-
-  // Apply client-side filters for Response Type and Endpoint Status
-  // When client-side filters are active, also apply search on client side
-  // This ensures search works on the filtered dataset, not the full dataset
-  const logs = useMemo(() => {
-    let filtered = filterByResponseType(rawLogs, responseTypeFilter);
-    filtered = filterByEndpointStatus(filtered, endpointStatusFilter);
-    
-    // Apply search filter on client side when client-side filters are active
-    // This ensures search works correctly when combined with selection filters
-    const hasClientSideFilters = responseTypeFilter !== 'all' || endpointStatusFilter !== 'all';
-    const searchTerm = filters?.search?.toLowerCase().trim();
-    
-    if (hasClientSideFilters && searchTerm) {
-      filtered = filtered.filter(log => {
-        const type = log.type?.toLowerCase() || '';
-        const referenceId = log.referenceId?.toLowerCase() || '';
-        const salesforceId = log.salesforceId?.toLowerCase() || '';
-        const statusMessage = log.statusMessage?.toLowerCase() || '';
-        
-        return (
-          type.includes(searchTerm) ||
-          referenceId.includes(searchTerm) ||
-          salesforceId.includes(searchTerm) ||
-          statusMessage.includes(searchTerm)
-        );
-      });
-    }
-    
-    return filtered;
-  }, [rawLogs, responseTypeFilter, endpointStatusFilter, filters?.search]);
-
-  // Adjust pagination total when client-side filters are active
-  const pagination = useMemo(() => {
-    const isFiltering = responseTypeFilter !== 'all' || endpointStatusFilter !== 'all';
-    return {
-      ...rawPagination,
-      total: isFiltering ? logs.length : rawPagination.total,
-    };
-  }, [rawPagination, logs.length, responseTypeFilter, endpointStatusFilter]);
 
   const handleView = (log: AuditLog) => {
     setSelectedLog(log);
@@ -190,6 +178,9 @@ export default function SalesforceResponsePage() {
     if (inputFilters.isDelivered !== undefined && inputFilters.isDelivered !== null) {
       cleaned.isDelivered = inputFilters.isDelivered;
     }
+    if (inputFilters.columnFilters && Object.keys(inputFilters.columnFilters).length > 0) {
+      cleaned.columnFilters = inputFilters.columnFilters;
+    }
     
     return cleaned;
   };
@@ -200,140 +191,28 @@ export default function SalesforceResponsePage() {
       setExporting(true);
       setExportProgress(null);
       
-      // Check if client-side filters are active
-      const hasClientSideFilters = responseTypeFilter !== 'all' || endpointStatusFilter !== 'all';
-      
-      // If client-side filters are active and we want to export filtered data,
-      // we need to fetch all data and apply client-side filters, then export client-side
-      if (includeFilters && hasClientSideFilters) {
-        // Fetch all data from server (with server-side filters like date range, search)
-        const dateFilters = buildFilters();
-        const serverFilters = cleanFilters({
-          ...filters,
-          ...dateFilters,
-        });
-        
-        // First, fetch first page to know total pages
-        const firstResponse = await SalesforceLogsApiService.getSalesforceLogs({
-          ...serverFilters,
-          page: 1,
-          limit: 1000,
-        });
-        
-        const totalPages = firstResponse.pagination.pages;
-        const pageSize = 1000;
-        let allLogs: AuditLog[] = [...firstResponse.logs];
-        
-        setExportProgress({ current: 1, total: totalPages });
-        
-        // Fetch remaining pages in parallel batches to speed up large exports
-        // Fetch 3-5 pages at a time to balance speed and server load
-        const batchSize = 5;
-        const remainingPages = totalPages > 1 ? Array.from({ length: totalPages - 1 }, (_, i) => i + 2) : [];
-        
-        // Process pages in batches
-        for (let i = 0; i < remainingPages.length; i += batchSize) {
-          const batch = remainingPages.slice(i, i + batchSize);
-          
-          // Fetch batch in parallel
-          const batchPromises = batch.map(page =>
-            SalesforceLogsApiService.getSalesforceLogs({
-              ...serverFilters,
-              page,
-              limit: pageSize,
-            })
-          );
-          
-          const batchResponses = await Promise.all(batchPromises);
-          
-          // Combine results
-          batchResponses.forEach(response => {
-            allLogs = [...allLogs, ...response.logs];
-          });
-          
-          // Update progress
-          const currentPage = Math.min(i + batchSize + 1, totalPages);
-          setExportProgress({ current: currentPage, total: totalPages });
-          
-          // Yield to browser to keep UI responsive
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-        
-        // Apply client-side filters to the fetched data
-        setExportProgress({ current: totalPages, total: totalPages + 1 });
-        let filteredData = filterByResponseType(allLogs, responseTypeFilter);
-        filteredData = filterByEndpointStatus(filteredData, endpointStatusFilter);
-        
-        // Prepare data for export in chunks to avoid blocking UI
-        setExportProgress({ current: totalPages + 1, total: totalPages + 2 });
-        
-        // Process data in chunks for better performance
-        const chunkSize = 1000;
-        const exportData: any[] = [];
-        
-        for (let i = 0; i < filteredData.length; i += chunkSize) {
-          const chunk = filteredData.slice(i, i + chunkSize);
-          const chunkData = chunk.map((log: AuditLog) => ({
-            'ID': log.id || '',
-            'User': log.user?.name || 'System',
-            'Action': log.action || '',
-            'Method': log.method || '',
-            'Endpoint': log.endpoint || '',
-            'Status Code': log.statusCode || '',
-            'IP Address': log.ipAddress || '',
-            'Created At': log.createdAt ? new Date(log.createdAt).toISOString() : '',
-            'Type': log.type || '',
-            'Reference ID': log.referenceId || '',
-            'Salesforce ID': log.salesforceId || '',
-            'Status Message': log.statusMessage || '',
-          }));
-          exportData.push(...chunkData);
-          
-          // Yield to browser every chunk
-          if (i + chunkSize < filteredData.length) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
-        }
-        
-        // Export client-side
-        setExportProgress({ current: totalPages + 2, total: totalPages + 3 });
-        await ExportApiService.exportToXLSX(
-          exportData,
-          `salesforce-responses-filtered-${formatDateForFilename()}`,
-          ['ID', 'User', 'Action', 'Method', 'Endpoint', 'Status Code', 'IP Address', 'Created At', 'Type', 'Reference ID', 'Salesforce ID', 'Status Message']
-        );
-        
-        setExportProgress(null);
-      } else {
-        // Use server-side export (no client-side filters or export all)
-        // This is more efficient for large datasets as the backend handles everything
-        let exportFilters: AuditLogFilters;
-        
-        if (includeFilters) {
-          // Combine filters and date filters, then clean them
-          const combinedFilters = {
+      const dateFilters = buildFilters();
+      const serverFilters = includeFilters 
+        ? {
             ...filters,
-            ...buildFilters(),
-          };
-          exportFilters = cleanFilters(combinedFilters);
-        } else {
-          // Export all data - use empty filters
-          exportFilters = {};
-        }
-        
-        const blob = await SalesforceLogsApiService.exportSalesforceLogs({
-          format: 'xlsx',
-          filters: exportFilters,
-        });
-        
-        const filename = includeFilters 
-          ? `salesforce-responses-filtered-${formatDateForFilename()}.xlsx`
-          : `salesforce-responses-all-${formatDateForFilename()}.xlsx`;
-        downloadBlob(blob, filename);
-      }
+            ...dateFilters,
+          }
+        : {};
+
+      await handleExportUtil({
+        fetchFn: SalesforceLogsApiService.getSalesforceLogs,
+        dataKey: 'logs',
+        exportColumns: salesforceResponseExportColumns,
+        cleanFilters,
+        clientSideFilter: undefined, // No client-side filtering needed, all done server-side
+        filenamePrefix: 'salesforce-responses',
+        includeFilters,
+        serverFilters,
+        onProgress: (progress) => setExportProgress(progress),
+        onError: (error) => setActionError(getApiErrorMessage(error)),
+      });
     } catch (err) {
-      console.error('Export failed:', err);
-      setActionError(getApiErrorMessage(err));
+      // Error already handled by onError callback
     } finally {
       setExporting(false);
       setExportProgress(null);
@@ -342,25 +221,16 @@ export default function SalesforceResponsePage() {
 
   // Handle filter changes - triggers refetch with new date filters
   const handleFilterChange = (newFilters: AuditLogFilters) => {
-    setBaseFilters(newFilters);
+    const isEmpty = Object.keys(newFilters).length === 0 || 
+                    Object.values(newFilters).every(v => v === undefined || v === '' || v === null || (typeof v === 'object' && Object.keys(v).length === 0));
+    if (isEmpty) {
+      clearFilters();
+    } else {
+      setBaseFilters(newFilters);
+    }
     // Refetch will happen automatically via useEffect when filters change
   };
 
-  const handleResponseTypeChange = (value: ResponseTypeFilter) => {
-    setResponseTypeFilter(value);
-    // Client-side filter, no need to refetch
-  };
-
-  const handleEndpointStatusChange = (value: EndpointStatusFilter) => {
-    setEndpointStatusFilter(value);
-    // Client-side filter, no need to refetch
-  };
-
-  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
-    setStartDate(start);
-    setEndDate(end);
-    // Refetch will be triggered by useEffect when dates change
-  };
 
   const clearFilters = () => {
     setResponseTypeFilter('all');
@@ -371,17 +241,15 @@ export default function SalesforceResponsePage() {
     // Don't call handleRefresh here - let useEffect handle it after state updates
   };
 
-  // Update filters when date range changes (including when cleared)
-  // buildFilters is memoized with startDate/endDate, so when dates change,
-  // buildFilters is recreated, which recreates fetchFn, triggering auto-refresh
-  // We still need this useEffect to ensure refresh happens immediately after state updates
-  useEffect(() => {
-    // Skip initial mount to avoid double fetch
-    // This will trigger when dates change, including when cleared to undefined
-    handleRefresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  // Check if custom filters are active
+  const hasCustomFiltersActive = responseTypeFilter !== 'all' || 
+                                  endpointStatusFilter !== 'all' || 
+                                  startDate !== undefined || 
+                                  endDate !== undefined;
 
+  useEffect(() => {
+    handleRefresh();
+  }, [startDate, endDate, responseTypeFilter, endpointStatusFilter]);
 
   const columns: Column<AuditLog>[] = [
     {
@@ -474,7 +342,7 @@ export default function SalesforceResponsePage() {
       mobilePriority: 'secondary',
       render: (_, log) => (
         <span className="text-xs sm:text-sm">
-          {new Date(log.createdAt).toLocaleString()}
+          {formatGMT7(log.createdAt)}
         </span>
       ),
     },
@@ -486,7 +354,7 @@ export default function SalesforceResponsePage() {
       filterable: false,
       mobilePriority: 'primary',
       width: '100px',
-      align: 'center',
+      align: 'left',
       render: (_, log) => (
         <Button
           variant="ghost"
@@ -502,7 +370,7 @@ export default function SalesforceResponsePage() {
   ];
 
   // Show initial loading state when page first loads
-  if (loading && logs.length === 0 && !fetchError) {
+  if (loading && (!logs || logs.length === 0) && !fetchError) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="pt-6 sm:pt-0 pb-6 sm:pb-0">
@@ -607,25 +475,19 @@ export default function SalesforceResponsePage() {
             ...filters, 
             search: searchTerm && searchTerm.trim() ? searchTerm.trim() : undefined 
           };
-          handleFilterChange(newFilters);
+          setBaseFilters(newFilters);
         }}
         searchValue={filters?.search || ''}
         searchPlaceholder="Search by type, reference ID, Salesforce ID, or status message..."
         showSelectionFilters={true}
         showSearchFilter={false}
+        hasCustomFiltersActive={hasCustomFiltersActive}
         customFilters={
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-medium">Selection Filters</span>
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-7">
-                Clear All
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Response Type Filter */}
             <div className="space-y-2">
               <label className="text-xs sm:text-sm font-medium">Response Type</label>
-              <Select value={responseTypeFilter} onValueChange={handleResponseTypeChange}>
+              <Select value={responseTypeFilter} onValueChange={(value) => setResponseTypeFilter(value as ResponseTypeFilter)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select response type" />
                 </SelectTrigger>
@@ -642,7 +504,7 @@ export default function SalesforceResponsePage() {
             {/* Endpoint Status Filter */}
             <div className="space-y-2">
               <label className="text-xs sm:text-sm font-medium">Endpoint Status</label>
-              <Select value={endpointStatusFilter} onValueChange={handleEndpointStatusChange}>
+              <Select value={endpointStatusFilter} onValueChange={(value) => setEndpointStatusFilter(value as EndpointStatusFilter)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -662,14 +524,14 @@ export default function SalesforceResponsePage() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP') : 'Select date'}
+                    {startDate ? formatGMT7Date(startDate) : 'Select date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={(date) => handleDateRangeChange(date, endDate)}
+                    onSelect={(date) => setStartDate(date)}
                     disabled={(date) => {
                       // Disable dates after today
                       return isAfter(startOfDay(date), startOfDay(new Date()));
@@ -686,14 +548,14 @@ export default function SalesforceResponsePage() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'PPP') : 'Select date'}
+                    {endDate ? formatGMT7Date(endDate) : 'Select date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={(date) => handleDateRangeChange(startDate, date)}
+                    onSelect={(date) => setEndDate(date)}
                     disabled={(date) => {
                       const today = startOfDay(new Date());
                       const selectedDate = startOfDay(date);
@@ -714,7 +576,6 @@ export default function SalesforceResponsePage() {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
             </div>
           </div>
         }
@@ -797,7 +658,7 @@ export default function SalesforceResponsePage() {
                       </div>
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
                         <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Created:</span>
-                        <span className="text-xs sm:text-sm break-words text-right flex-1">{new Date(selectedLog.createdAt).toLocaleString()}</span>
+                        <span className="text-xs sm:text-sm break-words text-right flex-1">{formatGMT7(selectedLog.createdAt)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 py-2.5">
                         <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Method:</span>

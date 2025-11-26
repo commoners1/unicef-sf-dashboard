@@ -21,8 +21,8 @@ export const environments: EnvironmentConfig[] = [
   {
     id: 'production',
     name: 'Production Environment',
-    apiUrl: 'https://your-production-api-url.com',
-    wsUrl: 'wss://your-production-ws-url.com',
+    apiUrl: 'https://transferses.unicef.id',
+    wsUrl: 'wss://transferses.unicef.id',
     isProduction: true,
     features: {
       realTimeLogs: true,
@@ -56,4 +56,4 @@ export const environments: EnvironmentConfig[] = [
   },
 ];
 
-export const defaultEnvironment = environments[2];
+export const defaultEnvironment = environments[1];

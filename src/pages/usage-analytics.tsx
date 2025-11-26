@@ -175,7 +175,7 @@ export default function UsageAnalyticsPage() {
             <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{usageStats?.uniqueUsers || 0}</div>
+            <div className="text-xl sm:text-2xl font-bold">{usageStats?.uniqueUsers.toLocaleString() || 0}</div>
             <p className="text-xs text-muted-foreground">
               Active users
             </p>
@@ -188,7 +188,13 @@ export default function UsageAnalyticsPage() {
             <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{usageStats?.averageResponseTime || 0}ms</div>
+            <div className="text-xl sm:text-2xl font-bold">{usageStats?.averageResponseTime.toLocaleString(
+              'id-ID', 
+              { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2 
+              }
+            ) || 0}ms</div>
             <p className="text-xs text-muted-foreground">
               Average duration
             </p>
@@ -315,7 +321,7 @@ export default function UsageAnalyticsPage() {
                         {endpoint.endpoint}
                       </code>
                       <span className="text-sm font-medium whitespace-nowrap">
-                        {endpoint.requests.toLocaleString()}
+                        {endpoint.requests.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">

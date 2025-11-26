@@ -256,8 +256,6 @@ const CronJobsPage = () => {
           </div>
         </TabsContent>
 
-        
-
         {/* History Tab */}
         <TabsContent value="history" className="space-y-4">
           <Card>

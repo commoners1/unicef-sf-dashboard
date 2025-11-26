@@ -762,50 +762,14 @@ export default function EndpointsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load endpoints - using static list (API endpoint doesn't exist yet)
     const loadEndpoints = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Use static list directly (API endpoint /endpoints doesn't exist)
-        // TODO: Uncomment when /endpoints API endpoint is implemented
-        /*
-        // Try to fetch from API first, fallback to static list
-        try {
-          const response = await EndpointsApiService.getEndpoints({ limit: 1000 });
-          if (response.data && response.data.length > 0) {
-            // Transform API response to our format if needed
-            const transformed = response.data.map((ep: any) => ({
-              method: ep.method,
-              path: ep.url || ep.path,
-              description: ep.description || ep.name,
-              auth: ep.auth || 'JWT',
-              category: ep.category || 'System',
-              icon: <Globe className="h-4 w-4" />
-            }));
-            setEndpoints(transformed);
-          } else {
-            // Fallback to static list
-            setEndpoints(getAllEndpoints());
-          }
-        } catch (apiError: any) {
-          // If API fails, use static list
-          // Only log if it's not a 404 (endpoint doesn't exist yet) or in development
-          if (apiError?.response?.status !== 404) {
-            console.warn('Failed to fetch endpoints from API, using static list:', apiError);
-          } else if (import.meta.env.DEV) {
-            // In development, log 404 as debug info (endpoint doesn't exist yet)
-            console.debug('Endpoints API not available (404), using static list');
-          }
-          setEndpoints(getAllEndpoints());
-        }
-        */
         setEndpoints(getAllEndpoints());
       } catch (err) {
         console.error('Error loading endpoints:', err);
         setError('Failed to load endpoints');
-        // Still show static list as fallback
         setEndpoints(getAllEndpoints());
       } finally {
         setLoading(false);

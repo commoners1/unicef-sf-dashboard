@@ -164,7 +164,11 @@ export default function QueuePageSimple() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {queueHealth?.queues?.salesforce?.waiting || 0}
+              {queueHealth?.queues?.salesforce?.waiting.toLocaleString('id-ID', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2 
+                }
+              ) || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs
@@ -182,7 +186,11 @@ export default function QueuePageSimple() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {queueHealth?.queues?.email?.waiting || 0}
+              {queueHealth?.queues?.email?.waiting.toLocaleString('id-ID', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2 
+                }
+              ) || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs
@@ -200,7 +208,11 @@ export default function QueuePageSimple() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {queueHealth?.queues?.notifications?.waiting || 0}
+              {queueHealth?.queues?.notifications?.waiting.toLocaleString('id-ID', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2 
+                }
+              ) || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Pending jobs

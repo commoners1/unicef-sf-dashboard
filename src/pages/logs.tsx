@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Monitor, RefreshCw, AlertTriangle, CheckCircle, Clock, User, Key } from 'lucide-react';
 import { usePaginatedFetch, useAutoRefresh } from '@/hooks';
 import { LogsApiService, type AuditLog } from '@/services/api/logs/logs-api';
+import { formatGMT7 } from '@/lib/utils/timezone.util';
 
 export default function LogsPage() {
   const [isConnected] = useState(true);
@@ -182,7 +183,7 @@ export default function LogsPage() {
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3 flex-shrink-0" />
-                          <span className="whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</span>
+                          <span className="whitespace-nowrap">{formatGMT7(log.createdAt)}</span>
                         </div>
                         {log.user && (
                           <div className="flex items-center gap-1">

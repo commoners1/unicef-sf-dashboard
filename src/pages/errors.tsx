@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +7,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageLoading } from '@/components/ui/loading';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { startOfDay, isAfter, isBefore } from 'date-fns';
+import { formatGMT7Date, convertDateFilterToUTC, convertEndDateFilterToUTC } from '@/lib/utils/timezone.util';
 import { ErrorsApiService, type Error, type ErrorFilters, type ErrorStats } from '@/services/api/errors/errors-api';
 import { usePaginatedFetch, useDataFetching } from '@/hooks';
-import { getApiErrorMessage, downloadJSON, downloadBlob, formatDateForFilename } from '@/lib/utils';
+import { getApiErrorMessage, downloadJSON } from '@/lib/utils';
+import { handleExport as handleExportUtil } from '@/lib/exports/export-handler';
+import { errorsExportColumns } from '@/lib/exports/export-columns/errors-export-columns';
+import { Progress } from '@/components/ui/progress';
 import { 
   AlertTriangle, 
   Bug, 
@@ -39,6 +49,52 @@ export default function ErrorsPage() {
   const [selectedError, setSelectedError] = useState<Error | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Filter state
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('');
+  const [environmentFilter, setEnvironmentFilter] = useState<string>('all');
+  const [resolvedFilter, setResolvedFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  const buildFilters = useCallback((): ErrorFilters => {
+    const newFilters: ErrorFilters = {};
+    
+    // Type filter
+    if (typeFilter && typeFilter !== 'all') {
+      newFilters.type = typeFilter;
+    }
+
+    // Source filter
+    if (sourceFilter && sourceFilter.trim() !== '') {
+      newFilters.source = sourceFilter.trim();
+    }
+
+    // Environment filter
+    if (environmentFilter && environmentFilter !== 'all') {
+      newFilters.environment = environmentFilter;
+    }
+
+    // Resolved filter
+    if (resolvedFilter && resolvedFilter !== 'all') {
+      newFilters.resolved = resolvedFilter === 'resolved' ? true : false;
+    }
+
+    // Date filter
+    if (startDate) {
+      // Convert GMT+7 date to UTC for backend
+      newFilters.startDate = convertDateFilterToUTC(startDate);
+    }
+    if (endDate) {
+      // Convert GMT+7 end date to UTC (inclusive of full day)
+      newFilters.endDate = convertEndDateFilterToUTC(endDate);
+    }
+
+    return newFilters;
+  }, [typeFilter, sourceFilter, environmentFilter, resolvedFilter, startDate, endDate]);
 
   // Use the new paginated fetch hook
   const {
@@ -47,17 +103,27 @@ export default function ErrorsPage() {
     error: fetchError,
     pagination,
     filters,
-    setFilters,
+    setFilters: setBaseFilters,
     handlePageChange,
     handlePageSizeChange,
     handleRefresh,
   } = usePaginatedFetch<Error>({
-    fetchFn: ErrorsApiService.getErrors,
+    fetchFn: useCallback(async (filters) => {
+      const customFilters = buildFilters();
+      return ErrorsApiService.getErrors({
+        ...filters,
+        ...customFilters,
+      });
+    }, [buildFilters]),
     initialFilters: {} as ErrorFilters,
     initialPageSize: 10,
     autoFetch: true,
     dataKey: 'data',
   });
+
+  useEffect(() => {
+    handleRefresh();
+  }, [startDate, endDate, typeFilter, sourceFilter, environmentFilter, resolvedFilter]);
 
   // Use the new data fetching hook for stats
   const {
@@ -82,18 +148,6 @@ export default function ErrorsPage() {
   const handleView = (error: Error) => {
     setSelectedError(error);
     setIsViewModalOpen(true);
-  };
-
-
-  const handleDelete = async (error: Error) => {
-    try {
-      setActionError(null);
-      await ErrorsApiService.deleteError(error.id);
-      await handleRefresh(); // Refresh the list after deletion
-    } catch (err) {
-      console.error('Delete failed:', err);
-      setActionError(getApiErrorMessage(err));
-    }
   };
 
   // Helper function to clean filters - remove undefined/null/empty values and pagination fields
@@ -131,35 +185,77 @@ export default function ErrorsPage() {
       setActionError(null);
       if (error) {
         downloadJSON(error, `error-${error.id}`);
-      } else {
-        // If includeFilters is false, use empty filters to export all data
-        // If true, clean filters to remove pagination fields and undefined values
-        const exportFilters = includeFilters 
-          ? cleanErrorFilters(filters as ErrorFilters)
-          : {} as ErrorFilters;
-        
-        const blob = await ErrorsApiService.exportErrors(exportFilters, 'csv');
-        
-        const filename = includeFilters
-          ? `errors-filtered-${formatDateForFilename()}.csv`
-          : `errors-all-${formatDateForFilename()}.csv`;
-        downloadBlob(blob, filename);
+        return;
       }
+
+      setExporting(true);
+      setExportProgress(null);
+
+      const customFilters = buildFilters();
+      const serverFilters = includeFilters 
+        ? {
+            ...filters,
+            ...customFilters,
+          }
+        : {};
+
+      await handleExportUtil({
+        fetchFn: ErrorsApiService.getErrors,
+        dataKey: 'data',
+        exportColumns: errorsExportColumns,
+        cleanFilters: cleanErrorFilters,
+        filenamePrefix: 'errors',
+        includeFilters,
+        serverFilters,
+        onProgress: (progress) => setExportProgress(progress),
+        onError: (error) => setActionError(getApiErrorMessage(error)),
+      });
     } catch (err) {
-      console.error('Export failed:', err);
-      setActionError(getApiErrorMessage(err));
+      // Error already handled by onError callback
+    } finally {
+      setExporting(false);
+      setExportProgress(null);
     }
   };
 
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const clearFilters = useCallback(() => {
+    setTypeFilter('all');
+    setSourceFilter('');
+    setEnvironmentFilter('all');
+    setResolvedFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setBaseFilters({});
+  }, [setBaseFilters]);
+
+  // Check if custom filters are active
+  const hasCustomFiltersActive = typeFilter !== 'all' || 
+                                  sourceFilter.trim() !== '' || 
+                                  environmentFilter !== 'all' || 
+                                  resolvedFilter !== 'all' || 
+                                  startDate !== undefined || 
+                                  endDate !== undefined;
+
   // Handle filter change
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters as ErrorFilters);
+  const handleFilterChange = (newFilters: ErrorFilters) => {
+    const isEmpty = Object.keys(newFilters).length === 0 || 
+                    Object.values(newFilters).every(v => v === undefined || v === '' || v === null || (typeof v === 'object' && Object.keys(v).length === 0));
+    if (isEmpty) {
+      clearFilters();
+    } else {
+      setBaseFilters(newFilters);
+    }
   };
 
   // Handle search
   const handleSearch = (searchTerm: string) => {
     const newFilters = { ...filters, search: searchTerm };
-    setFilters(newFilters as ErrorFilters);
+    setBaseFilters(newFilters as ErrorFilters);
   };
 
   const columns: Column<Error>[] = [
@@ -309,19 +405,23 @@ export default function ErrorsPage() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
-                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-                <span className="sm:hidden">Export</span>
-                <ChevronDown className="ml-1 h-3 w-3" />
+              <Button size="sm" disabled={loading || exporting} className="flex-1 sm:flex-initial min-w-[100px]">
+                {exporting ? (
+                  <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 animate-spin`} />
+                ) : (
+                  <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+                <span className="sm:hidden">{exporting ? '...' : 'Export'}</span>
+                {!exporting && <ChevronDown className="ml-1 h-3 w-3" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading || exporting}>
                 <Download className="mr-2 h-4 w-4" />
                 Export All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading || exporting}>
                 <Filter className="mr-2 h-4 w-4" />
                 Export Filtered
               </DropdownMenuItem>
@@ -337,6 +437,22 @@ export default function ErrorsPage() {
             {fetchError || actionError}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Export Progress Indicator */}
+      {exporting && exportProgress && (
+        <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Exporting data...</span>
+            <span className="text-muted-foreground">
+              {exportProgress.current} / {exportProgress.total}
+            </span>
+          </div>
+          <Progress 
+            value={(exportProgress.current / exportProgress.total) * 100} 
+            className="h-2" 
+          />
+        </div>
       )}
 
       {stats && (
@@ -420,11 +536,125 @@ export default function ErrorsPage() {
         searchPlaceholder="Search errors by message, source, or level..."
         actions={{
           view: handleView,
-          delete: handleDelete,
-          export: handleExport,
         }}
         rowKey="id"
         emptyMessage="No errors found"
+        showSelectionFilters={true}
+        showSearchFilter={false}
+        hasCustomFiltersActive={hasCustomFiltersActive}
+        customFilters={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Type Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Type</label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="warning">Warning</SelectItem>
+                  <SelectItem value="info">Info</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Source Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Source</label>
+              <Input
+                type="text"
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                placeholder="Filter by source"
+                className="w-full"
+              />
+            </div>
+
+            {/* Environment Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Environment</label>
+              <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="development">Development</SelectItem>
+                  <SelectItem value="staging">Staging</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Resolved Filter */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Status</label>
+              <Select value={resolvedFilter} onValueChange={setResolvedFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="unresolved">Unresolved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Start Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? formatGMT7Date(startDate) : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => handleDateRangeChange(date, endDate)}
+                    disabled={(date) => isAfter(startOfDay(date), startOfDay(new Date()))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* End Date */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium">End Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? formatGMT7Date(endDate) : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => handleDateRangeChange(startDate, date)}
+                    disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      const selectedDate = startOfDay(date);
+                      if (isAfter(selectedDate, today)) return true;
+                      if (startDate && isBefore(selectedDate, startOfDay(startDate))) return true;
+                      return false;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        }
       />
 
       {/* View Error Modal */}

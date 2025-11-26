@@ -16,6 +16,10 @@ export interface User {
   apiKeyCount?: number;
 }
 
+export interface AllUsersCount {
+  count: number;
+}
+
 export interface UpdateUserData {
   name?: string;
   company?: string;
@@ -41,6 +45,12 @@ export interface AvailableRoles {
 }
 
 export class UserApiService {
+  // Get all users count
+  static async getAllUsersCount(): Promise<AllUsersCount> {
+    const response = await apiClient.get('/user/all/count');
+    return response.data;
+  }
+
   // Get user profile
   static async getProfile(): Promise<User> {
     const response = await apiClient.get('/user/profile');

@@ -57,7 +57,7 @@ export const ROUTE_PATHS = {
 export function getFullPath(path: string): string {
   // Remove leading slash if present
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
+
   // Handle empty basename
   if (!ROUTER_BASENAME || ROUTER_BASENAME === '/') {
     return `/${cleanPath}`;

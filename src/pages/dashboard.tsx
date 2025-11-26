@@ -9,7 +9,8 @@ import { getLoginUrl } from '@/config/routes.config';
 import { 
   useAuditDashboardStats,
   useQueueHealth,
-  useQueueDetailedStats
+  useQueueDetailedStats,
+  useAllUsersCount
 } from '@/hooks/queries';
 import { 
   Activity, 
@@ -23,7 +24,6 @@ import {
   LogIn
 } from 'lucide-react';
 export default function DashboardPage() {
-  // Use React Query hooks with automatic caching and refetching
   const { 
     data: auditStats, 
     isLoading: isLoadingStats,
@@ -45,34 +45,38 @@ export default function DashboardPage() {
     refetch: refetchPerformance
   } = useQueueDetailedStats();
 
-  // Combined loading and error states
-  const isLoading = isLoadingStats || isLoadingHealth || isLoadingPerformance;
-  const error = statsError || healthError || performanceError;
+  const { 
+    data: allUsersCount, 
+    isLoading: isLoadingAllUsersCount, 
+    error: allUsersCountError,
+    refetch: refetchAllUsersCount
+  } = useAllUsersCount();
 
-  // Manual refresh handler
+  const isLoading = isLoadingStats || isLoadingHealth || isLoadingPerformance || isLoadingAllUsersCount;
+  const error = statsError || healthError || performanceError || allUsersCountError;
+
   const handleRefresh = () => {
     refetchStats();
     refetchHealth();
     refetchPerformance();
+    refetchAllUsersCount();
   };
 
-  // Calculate derived metrics
   const calculatedMetrics = {
     totalApiCalls: auditStats?.total || 0,
     successRate: auditStats?.byStatus ? 
       calculateSuccessRate(auditStats.byStatus.success, auditStats.byStatus.error) : 0,
     averageResponseTime: performanceMetrics?.performance?.avgProcessingTime || 0,
-    activeUsers: 0, // This would need a separate API
+    activeUsers: allUsersCount?.count.toLocaleString() || 0,
     queueDepth: queueHealth?.queues ? 
       Object.values(queueHealth.queues).reduce((total: number, queue: any) => total + (queue.waiting || 0), 0) : 0
   };
 
-  // Helper function to format numbers with max 3 decimal places
   const formatNumber = (num: number): string => {
     if (Number.isInteger(num)) {
       return num.toString();
     }
-    return Number(num.toFixed(3)).toString();
+    return Number(num.toFixed(2)).toString();
   };
 
   const systemHealthData = {
@@ -82,7 +86,7 @@ export default function DashboardPage() {
     },
     database: { 
       status: 'healthy', 
-      connections: 12 // This would need a separate API
+      connections: 12
     },
     redis: { 
       status: 'healthy', 
@@ -286,7 +290,11 @@ export default function DashboardPage() {
         />
         <MetricsCard
           title="Avg Response Time"
-          value={`${formatNumber(calculatedMetrics.averageResponseTime)}ms`}
+          // value={`${formatNumber(calculatedMetrics.averageResponseTime)}ms`}
+          value={`${calculatedMetrics.averageResponseTime.toLocaleString('id-ID', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          })}ms`}
           change={-15}
           changeType="decrease"
           description="Average processing time"
@@ -294,7 +302,7 @@ export default function DashboardPage() {
         />
         <MetricsCard
           title="Active Users"
-          value={calculatedMetrics.activeUsers.toString()}
+          value={allUsersCount?.count.toLocaleString() || 0}
           change={8}
           changeType="increase"
           description="Currently active"

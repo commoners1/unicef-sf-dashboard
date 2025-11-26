@@ -37,12 +37,6 @@ export function createApiClient(): AxiosInstance {
       // Ensure credentials are sent (for httpOnly cookies)
       config.withCredentials = true;
 
-      // Note: Authentication is handled via httpOnly cookies
-      // The browser automatically sends cookies with requests
-      // No need to manually add Authorization header
-
-      // Add CSRF token for state-changing operations
-      // Check if current environment supports CSRF tokens
       const currentEnv = currentStore.currentEnvironment;
       const isStateChanging = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase() || '');
       const enableCSRF = currentEnv?.enableCSRF !== false; // Default to true unless explicitly disabled
@@ -54,9 +48,6 @@ export function createApiClient(): AxiosInstance {
           if (csrfToken && config.headers) {
             config.headers['X-CSRF-Token'] = csrfToken;
           } else {
-            // CSRF token not available - need to get it first
-            // This can happen on first request or if cookie was cleared
-            // We'll let the request fail with 403, then the error handler will retry
             SecurityLogger.log('CSRF_TOKEN_NOT_AVAILABLE', { 
               url: config.url,
               method: config.method 
@@ -87,7 +78,6 @@ export function createApiClient(): AxiosInstance {
   // Add response interceptor for error handling and CSRF token extraction
   apiClient.interceptors.response.use(
     (response) => {
-      // Extract CSRF token from response header (per FRONTEND_INTEGRATION_GUIDE.md)
       const csrfToken = response.headers['x-csrf-token'];
       if (csrfToken) {
         CSRFProtection.updateTokenFromHeader(csrfToken);
@@ -97,7 +87,6 @@ export function createApiClient(): AxiosInstance {
     async (error) => {
       const originalRequest = error.config;
 
-      // Handle 401 Unauthorized - Automatic token refresh (per FRONTEND_INTEGRATION_GUIDE.md)
       if (error.response?.status === 401 && !originalRequest._retry) {
         // Skip refresh for login endpoint to avoid infinite loop
         if (originalRequest.url?.includes('/auth/login')) {
@@ -120,9 +109,15 @@ export function createApiClient(): AxiosInstance {
 
           // Retry original request with new token
           return apiClient(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed - session expired, redirect to login
-          SecurityLogger.logAuthEvent('session_expired', { reason: 'refresh_failed' });
+        } catch (refreshError: any) {
+          const errorMessage = refreshError?.response?.data?.message || refreshError?.message || 'Unknown error';
+          
+          SecurityLogger.logAuthEvent('session_expired', { 
+            reason: 'refresh_failed',
+            errorMessage,
+            originalUrl: originalRequest.url,
+          });
+          
           SecureStorage.removeItem('user_profile');
           
           // Redirect to login with correct path (using centralized config)

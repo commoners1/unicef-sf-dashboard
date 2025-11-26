@@ -6,10 +6,12 @@ import { ROUTE_TITLES, ROUTE_PATHS, getFullPath } from '@/config/routes.config';
 const SITE_NAME = import.meta.env.VITE_APP_TITLE || 'SF Middleware Dashboard';
 
 // Helper function to get page title from route
-const getPageTitle = (pathname: string): string => {
+const getPageTitle = (pathnameParam: string): string => {
   const usersPath = getFullPath(ROUTE_PATHS.USERS);
   const jobsPath = getFullPath(ROUTE_PATHS.JOBS);
   const errorsPath = getFullPath(ROUTE_PATHS.ERRORS);
+
+  const pathname = getFullPath(pathnameParam);
   
   // Check for dynamic routes
   if (pathname.startsWith(`${usersPath}/`) && pathname !== usersPath) {

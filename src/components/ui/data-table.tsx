@@ -50,6 +50,9 @@ export interface Column<T> {
   width?: string;
   align?: 'left' | 'center' | 'right';
   mobilePriority?: 'primary' | 'secondary'; // Primary shows by default, secondary shows in "View More"
+  exportable?: boolean; // Whether this column should be included in exports (default: true if not specified)
+  exportKey?: string; // Custom key for export (defaults to title)
+  exportValue?: (record: T) => any; // Custom function to extract value for export
 }
 
 export interface DataTableProps<T> {
@@ -83,6 +86,7 @@ export interface DataTableProps<T> {
   showSelectionFilters?: boolean; // Show dropdown/select-based filters
   showSearchFilter?: boolean; // Show typing-based search input
   customFilters?: React.ReactNode; // Custom filter content to show when showSearchFilter is true
+  hasCustomFiltersActive?: boolean; // Indicates when custom filters (managed outside DataTable) are active
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -104,6 +108,7 @@ export function DataTable<T extends Record<string, any>>({
   showSelectionFilters = true, // Default to true for backward compatibility
   showSearchFilter = true, // Default to true for backward compatibility
   customFilters,
+  hasCustomFiltersActive = false,
 }: DataTableProps<T>) {
   // Use controlled search value if provided (for server-side), otherwise use local state
   const [localSearchTerm, setLocalSearchTerm] = useState('');
@@ -282,7 +287,7 @@ export function DataTable<T extends Record<string, any>>({
     return columns.filter(col => col.filterable);
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '') || (inputValue || searchTerm);
+  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '') || (inputValue || searchTerm) || hasCustomFiltersActive;
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -320,7 +325,7 @@ export function DataTable<T extends Record<string, any>>({
                   onClick={clearFilters}
                   className="flex-1 sm:flex-initial min-w-[100px]"
                 >
-                  Clear All
+                  Clear All Filters
                 </Button>
               )}
             </div>

@@ -27,6 +27,15 @@ export function useAllUsers(page: number = 1, limit: number = 50) {
   });
 }
 
+export function useAllUsersCount() {
+  return useQuery({
+    queryKey: queryKeys.user.allUsersCount(),
+    queryFn: () => UserApiService.getAllUsersCount(),
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
 /**
  * ✅ CACHE - User by ID (Tier 2: 2 minutes TTL)
  */

@@ -93,6 +93,8 @@ export interface JobFilters {
   search?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export class QueueApiService {

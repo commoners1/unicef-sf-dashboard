@@ -29,9 +29,18 @@ export interface AuditLog {
   createdAt: string;
 }
 
+import type { ColumnFilters } from './column-filters';
+
 export interface AuditLogFilters {
+  // Pagination
   page?: number;
   limit?: number;
+  
+  // Sorting (dynamic, not hardcoded)
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  
+  // Standard filters
   userId?: string;
   apiKeyId?: string;
   action?: string;
@@ -41,6 +50,9 @@ export interface AuditLogFilters {
   endDate?: string;
   search?: string;
   isDelivered?: boolean;
+  
+  // Dynamic column filters for server-side filtering
+  columnFilters?: ColumnFilters;
 }
 
 export interface AuditLogResponse {

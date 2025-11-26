@@ -25,7 +25,6 @@ import {
 export default function OverviewPage() {
   const { systemHealth, metrics } = useDashboardStore();
 
-  // Use React Query hooks with automatic caching
   const { 
     data: auditStats, 
     isLoading: isLoadingStats,
@@ -40,11 +39,9 @@ export default function OverviewPage() {
     refetch: refetchHealth
   } = useQueueHealth();
 
-  // Combined loading and error states
   const isLoading = isLoadingStats || isLoadingHealth;
   const error = statsError || healthError;
 
-  // Manual refresh handler
   const handleRefresh = () => {
     refetchStats();
     refetchHealth();
@@ -63,7 +60,6 @@ export default function OverviewPage() {
       if (format === 'json') {
         ExportApiService.exportToJSON([exportData], 'dashboard-overview');
       } else {
-        // Convert to flat structure for CSV
         const flatData = [
           {
             metric: 'Total API Calls',
@@ -124,19 +120,6 @@ export default function OverviewPage() {
       console.error('Error exporting overview data:', err);
     }
   };
-
-  // const getStatusColor = (status: string) => {
-  //   switch (status) {
-  //     case 'healthy':
-  //       return 'success';
-  //     case 'warning':
-  //       return 'warning';
-  //     case 'error':
-  //       return 'destructive';
-  //     default:
-  //       return 'secondary';
-  //   }
-  // };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -356,25 +339,19 @@ export default function OverviewPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Waiting</span>
-                    <span className="font-medium">{queue.waiting || 0}</span>
+                    <span className="font-medium">{queue.waiting.toLocaleString() || 0}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Active</span>
-                    <span className="font-medium">{queue.active || 0}</span>
+                    <span className="font-medium">{queue.active.toLocaleString() || 0}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Completed</span>
-                    <span className="font-medium text-green-600">{queue.completed || 0}</span>
+                    <span className="font-medium text-green-600">{queue.completed.toLocaleString() || 0}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Failed</span>
-                    <span className="font-medium text-red-600">{queue.failed || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Health</span>
-                    <Badge variant={queue.health === 'healthy' ? 'success' : queue.health === 'warning' ? 'warning' : 'destructive'}>
-                      {queue.health?.toUpperCase() || 'UNKNOWN'}
-                    </Badge>
+                    <span className="font-medium text-red-600">{queue.failed.toLocaleString() || 0}</span>
                   </div>
                 </div>
               </CardContent>

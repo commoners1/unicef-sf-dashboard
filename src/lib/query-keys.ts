@@ -103,6 +103,7 @@ export const queryKeys = {
     all: ['user'] as const,
     profile: () => ['user', 'profile'] as const,
     allUsers: (page?: number, limit?: number) => ['user', 'all', page, limit] as const,
+    allUsersCount: () => ['user', 'all', 'count'] as const,
     byId: (id: string) => ['user', id] as const,
     roles: () => ['user', 'roles', 'available'] as const,
   },

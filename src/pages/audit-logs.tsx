@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,8 @@ import {
   ChevronDown,
   Filter,
 } from 'lucide-react';
-import { format, addDays, startOfDay, isAfter, isBefore } from 'date-fns';
+import { startOfDay, isAfter, isBefore } from 'date-fns';
+import { formatGMT7, formatGMT7Date, convertDateFilterToUTC, convertEndDateFilterToUTC } from '@/lib/utils/timezone.util';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,21 +39,30 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { AuditLog, AuditLogFilters, AuditLogStats } from '@/types/audit';
 import { AuditApiService } from '@/services/api/audit/audit-api';
+import { handleExport as handleExportUtil } from '@/lib/exports/export-handler';
+import { auditLogsExportColumns } from '@/lib/exports/export-columns/audit-logs-export-columns';
+import { Progress } from '@/components/ui/progress';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function AuditLogsPage() {
+  // Modal
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  // Error state
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Filter state
   const [actionFilter, setActionFilter] = useState<string>('all');
-  const [userFilter, setUserFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deliveredFilter, setDeliveredFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  // Build filters function that includes date range and other filters
   const buildFilters = useCallback((): AuditLogFilters => {
     const newFilters: AuditLogFilters = {};
     
@@ -60,36 +70,31 @@ export default function AuditLogsPage() {
     if (actionFilter && actionFilter !== 'all') {
       newFilters.action = actionFilter;
     }
-    
-    // Status filter - note: backend may need to handle ranges
-    // For now, we'll pass the filter and let backend handle it
+
+    // Status filter
     if (statusFilter && statusFilter !== 'all') {
       if (statusFilter === 'success') {
-        // Note: Backend needs to handle 2xx range
-        // For now, use 200 as example - backend should filter 200-299
         newFilters.statusCode = 200;
       } else if (statusFilter === 'client-error') {
-        // Backend should filter 400-499
         newFilters.statusCode = 400;
       } else if (statusFilter === 'server-error') {
-        // Backend should filter 500-599
         newFilters.statusCode = 500;
       }
     }
     
     // Delivered filter
     if (deliveredFilter && deliveredFilter !== 'all') {
-      // Convert string to boolean
       newFilters.isDelivered = deliveredFilter === 'delivered' ? true : false;
     }
     
-    // Date filters
+    // Date filter
     if (startDate) {
-      newFilters.startDate = format(startDate, 'yyyy-MM-dd');
+      // Convert GMT+7 date to UTC for backend
+      newFilters.startDate = convertDateFilterToUTC(startDate);
     }
     if (endDate) {
-      const endDatePlusOne = addDays(endDate, 1);
-      newFilters.endDate = format(endDatePlusOne, 'yyyy-MM-dd');
+      // Convert GMT+7 end date to UTC (inclusive of full day)
+      newFilters.endDate = convertEndDateFilterToUTC(endDate);
     }
     
     return newFilters;
@@ -117,35 +122,13 @@ export default function AuditLogsPage() {
     initialFilters: {} as AuditLogFilters,
     initialPageSize: 10,
     autoFetch: true,
-    dataKey: 'logs', // API returns 'logs' instead of 'data'
+    dataKey: 'logs',
   });
 
-  // Apply client-side filter for User (since we can't filter by userId in buildFilters)
-  const filteredLogs = useMemo(() => {
-    if (userFilter === 'all') {
-      return logs;
-    }
-
-    let result = [...logs];
-
-    if (userFilter === 'system') {
-      // Filter for logs without userId (system logs)
-      result = result.filter(log => !log.userId && !log.user);
-    } else {
-      // Filter by user name (client-side)
-      result = result.filter(log => log.user?.name === userFilter);
-    }
-
-    return result;
-  }, [logs, userFilter]);
-
-  // Update filters when date range or other filters change (except userFilter which is client-side)
   useEffect(() => {
     handleRefresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, actionFilter, statusFilter, deliveredFilter]);
 
-  // Use the new data fetching hook for stats
   const {
     data: stats,
     fetch: fetchStats,
@@ -153,13 +136,10 @@ export default function AuditLogsPage() {
     fetchFn: AuditApiService.getAuditStats,
     autoFetch: true,
     onError: (err) => {
-      // Don't show error for stats failure, just log it
-      // Stats are not critical for the page to function
       console.error('Error loading stats:', err);
     },
   });
 
-  // Combined refresh handler
   const handleRefreshAll = async () => {
     setActionError(null);
     await Promise.all([handleRefresh(), fetchStats()]);
@@ -173,25 +153,27 @@ export default function AuditLogsPage() {
   const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
     setStartDate(start);
     setEndDate(end);
-    // Refetch will be triggered by useEffect when dates change
   };
 
   const clearFilters = useCallback(() => {
     setActionFilter('all');
-    setUserFilter('all');
     setStatusFilter('all');
     setDeliveredFilter('all');
     setStartDate(undefined);
     setEndDate(undefined);
     setBaseFilters({});
-    // State updates are async, so useEffect will handle the refresh
   }, [setBaseFilters]);
 
-  // Helper function to clean filters - remove undefined/null/empty values and pagination fields
+  // Check if custom filters are active
+  const hasCustomFiltersActive = actionFilter !== 'all' || 
+                                  statusFilter !== 'all' || 
+                                  deliveredFilter !== 'all' || 
+                                  startDate !== undefined || 
+                                  endDate !== undefined;
+
   const cleanFilters = (inputFilters: AuditLogFilters): AuditLogFilters => {
     const cleaned: AuditLogFilters = {};
     
-    // List of valid filter fields for export (exclude pagination/sorting)
     if (inputFilters.userId && inputFilters.userId !== '') {
       cleaned.userId = inputFilters.userId;
     }
@@ -237,40 +219,40 @@ export default function AuditLogsPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-      } else {
-        // If includeFilters is false, use empty filters to export all data
-        // If true, clean filters to remove pagination fields and undefined values
-        const exportFilters = includeFilters 
-          ? cleanFilters(filters as AuditLogFilters)
-          : {} as AuditLogFilters;
-        
-        const blob = await AuditApiService.exportAuditLogs({
-          format: 'xlsx',
-          filters: exportFilters,
-        });
-        
-        const filename = includeFilters
-          ? `audit-logs-filtered-${new Date().toISOString().split('T')[0]}.xlsx`
-          : `audit-logs-all-${new Date().toISOString().split('T')[0]}.xlsx`;
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        return;
       }
+
+      setExporting(true);
+      setExportProgress(null);
+
+      const dateFilters = buildFilters();
+      const serverFilters = includeFilters 
+        ? {
+            ...filters,
+            ...dateFilters,
+          }
+        : {};
+
+      await handleExportUtil({
+        fetchFn: AuditApiService.getAuditLogs,
+        dataKey: 'logs',
+        exportColumns: auditLogsExportColumns,
+        cleanFilters,
+        clientSideFilter: undefined, // No client-side filtering needed
+        filenamePrefix: 'audit-logs',
+        includeFilters,
+        serverFilters,
+        onProgress: (progress) => setExportProgress(progress),
+        onError: (error) => setActionError(getApiErrorMessage(error)),
+      });
     } catch (err) {
-      console.error('Export failed:', err);
-      setActionError('Export failed');
+    } finally {
+      setExporting(false);
+      setExportProgress(null);
     }
   };
 
-  // Handle filter change
   const handleFilterChange = (newFilters: AuditLogFilters) => {
-    // If filters are cleared (empty object or all values are empty), also clear our custom filter state
     const isEmpty = Object.keys(newFilters).length === 0 || 
                     Object.values(newFilters).every(v => v === undefined || v === '' || v === null || (typeof v === 'object' && Object.keys(v).length === 0));
     if (isEmpty) {
@@ -407,14 +389,13 @@ export default function AuditLogsPage() {
           <div className="flex items-center space-x-2">
             <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="text-xs sm:text-sm">
-              {new Date(log.createdAt).toLocaleString()}
+              {formatGMT7(log.createdAt)}
             </span>
           </div>
         ),
       },
   ];
 
-  // Show initial loading state when page first loads
   if (loading && logs.length === 0 && !fetchError) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -445,19 +426,23 @@ export default function AuditLogsPage() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" disabled={loading} className="flex-1 sm:flex-initial min-w-[100px]">
-                <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-                <span className="sm:hidden">Export</span>
-                <ChevronDown className="ml-1 h-3 w-3" />
+              <Button size="sm" disabled={loading || exporting} className="flex-1 sm:flex-initial min-w-[100px]">
+                {exporting ? (
+                  <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 animate-spin`} />
+                ) : (
+                  <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+                <span className="sm:hidden">{exporting ? '...' : 'Export'}</span>
+                {!exporting && <ChevronDown className="ml-1 h-3 w-3" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, false)} disabled={loading || exporting}>
                 <Download className="mr-2 h-4 w-4" />
                 Export All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading}>
+              <DropdownMenuItem onClick={() => handleExport(undefined, true)} disabled={loading || exporting}>
                 <Filter className="mr-2 h-4 w-4" />
                 Export Filtered
               </DropdownMenuItem>
@@ -478,6 +463,22 @@ export default function AuditLogsPage() {
         </div>
       )}
 
+      {/* Export Progress Indicator */}
+      {exporting && exportProgress && (
+        <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Exporting data...</span>
+            <span className="text-muted-foreground">
+              {exportProgress.current} / {exportProgress.total}
+            </span>
+          </div>
+          <Progress 
+            value={(exportProgress.current / exportProgress.total) * 100} 
+            className="h-2" 
+          />
+        </div>
+      )}
+
       {stats && (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -486,7 +487,7 @@ export default function AuditLogsPage() {
               <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{stats.today}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.today.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 +12% from yesterday
               </p>
@@ -498,7 +499,7 @@ export default function AuditLogsPage() {
               <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{stats.week}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.week.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 +8% from last week
               </p>
@@ -523,7 +524,7 @@ export default function AuditLogsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {((stats.byStatus.success / stats.total) * 100).toFixed(1)}%
+                {((stats.byStatus.success / stats.total) * 100).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%
               </div>
               <p className="text-xs text-muted-foreground">
                 {stats.byStatus.error} errors
@@ -534,7 +535,7 @@ export default function AuditLogsPage() {
       )}
 
       <DataTable
-        data={filteredLogs}
+        data={logs}
         columns={columns}
         loading={loading}
         serverSidePagination={true}
@@ -571,6 +572,7 @@ export default function AuditLogsPage() {
         emptyMessage="No audit logs found"
         showSelectionFilters={true}
         showSearchFilter={false}
+        hasCustomFiltersActive={hasCustomFiltersActive}
         customFilters={
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Action Filter */}
@@ -588,25 +590,6 @@ export default function AuditLogsPage() {
                   <SelectItem value="CRON_JOB">Cron Job</SelectItem>
                   <SelectItem value="QUEUE_JOB_ADDED">Queue Job Added</SelectItem>
                   <SelectItem value="SYSTEM_MAINTENANCE">System Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* User Filter */}
-            <div className="space-y-2">
-              <label className="text-xs sm:text-sm font-medium">User</label>
-              <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                  {Array.from(new Set(filteredLogs.map(l => l.user?.name).filter(Boolean))).map(name => (
-                    <SelectItem key={name} value={name!}>
-                      {name}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -649,7 +632,7 @@ export default function AuditLogsPage() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP') : 'Select date'}
+                    {startDate ? formatGMT7Date(startDate) : 'Select date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -671,7 +654,7 @@ export default function AuditLogsPage() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'PPP') : 'Select date'}
+                    {endDate ? formatGMT7Date(endDate) : 'Select date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -768,7 +751,7 @@ export default function AuditLogsPage() {
                     <CardContent className="space-y-0">
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
                         <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Created:</span>
-                        <span className="text-xs sm:text-sm break-words text-right flex-1">{new Date(selectedLog.createdAt).toLocaleString()}</span>
+                        <span className="text-xs sm:text-sm break-words text-right flex-1">{formatGMT7(selectedLog.createdAt)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/50">
                         <span className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[80px] sm:min-w-[100px]">Duration:</span>

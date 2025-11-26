@@ -15,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import type { AuditLogFilters } from '@/types/audit';
-import { format } from 'date-fns';
+import { formatGMT7Date } from '@/lib/utils/timezone.util';
 
 interface AuditLogFiltersProps {
   filters: AuditLogFilters;
@@ -245,7 +245,7 @@ export function AuditLogFiltersComponent({
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {localFilters.startDate ? format(new Date(localFilters.startDate), 'PPP') : 'Select date'}
+                        {localFilters.startDate ? formatGMT7Date(new Date(localFilters.startDate)) : 'Select date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -265,7 +265,7 @@ export function AuditLogFiltersComponent({
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {localFilters.endDate ? format(new Date(localFilters.endDate), 'PPP') : 'Select date'}
+                        {localFilters.endDate ? formatGMT7Date(new Date(localFilters.endDate)) : 'Select date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
