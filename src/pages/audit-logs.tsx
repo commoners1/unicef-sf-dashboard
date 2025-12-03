@@ -89,18 +89,15 @@ export default function AuditLogsPage() {
     
     // Date filter
     if (startDate) {
-      // Convert GMT+7 date to UTC for backend
       newFilters.startDate = convertDateFilterToUTC(startDate);
     }
     if (endDate) {
-      // Convert GMT+7 end date to UTC (inclusive of full day)
       newFilters.endDate = convertEndDateFilterToUTC(endDate);
     }
     
     return newFilters;
   }, [actionFilter, statusFilter, deliveredFilter, startDate, endDate]);
 
-  // Use the new paginated fetch hook
   const {
     data: logs,
     loading,
@@ -164,7 +161,6 @@ export default function AuditLogsPage() {
     setBaseFilters({});
   }, [setBaseFilters]);
 
-  // Check if custom filters are active
   const hasCustomFiltersActive = actionFilter !== 'all' || 
                                   statusFilter !== 'all' || 
                                   deliveredFilter !== 'all' || 
@@ -238,7 +234,7 @@ export default function AuditLogsPage() {
         dataKey: 'logs',
         exportColumns: auditLogsExportColumns,
         cleanFilters,
-        clientSideFilter: undefined, // No client-side filtering needed
+        clientSideFilter: undefined,
         filenamePrefix: 'audit-logs',
         includeFilters,
         serverFilters,
@@ -261,7 +257,6 @@ export default function AuditLogsPage() {
       setBaseFilters(newFilters);
     }
   };
-
 
   const columns: Column<AuditLog>[] = [
       {
