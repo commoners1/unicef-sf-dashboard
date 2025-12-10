@@ -60,7 +60,7 @@ export function Header({ className }: HeaderProps) {
               Salesforce Middleware
             </h1>
             <Badge variant="outline" className="text-xs hidden sm:inline-flex">
-              v1.1.0
+              v1.3.1
             </Badge>
           </div>
         </div>

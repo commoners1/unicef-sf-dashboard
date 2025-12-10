@@ -19,7 +19,7 @@ Create `.env.local` for local dev. Example:
 VITE_API_URL=http://localhost:3000
 VITE_WS_URL=ws://localhost:3000
 VITE_APP_TITLE=SF Middleware Dashboard
-VITE_APP_VERSION=1.1.0
+VITE_APP_VERSION=1.3.1
 VITE_SENTRY_DSN=
 ```
 

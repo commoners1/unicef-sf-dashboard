@@ -22,7 +22,7 @@ export function Footer({ className }: FooterProps) {
       <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl gap-1 sm:gap-2">
         <p className="text-center">
           © {currentYear} Salesforce Middleware. All rights reserved.
-          <span className="hidden sm:inline"> • Version 1.1.0</span>
+          <span className="hidden sm:inline"> • Version 1.3.1</span>
         </p>
       </div>
     </footer>

@@ -661,6 +661,6 @@ Use this structure as a baseline for new projects, adapting it to specific requi
 ---
 
 **Last Updated**: 2024  
-**Version**: 1.1.0  
+**Version**: 1.3.1
 **Maintainer**: Development Team
 

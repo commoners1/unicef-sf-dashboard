@@ -31,7 +31,7 @@ Example `.env.local`:
 VITE_API_URL=http://localhost:3000
 VITE_WS_URL=ws://localhost:3000
 VITE_APP_TITLE=SF Middleware Dashboard
-VITE_APP_VERSION=1.1.0
+VITE_APP_VERSION=1.3.1
 ```
 
 > **Note**: The `VITE_API_URL` in `.env` files is only used as a fallback. The runtime environment selector takes precedence.
