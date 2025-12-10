@@ -1,6 +1,6 @@
 % Changelog & Release Notes
 
-Last updated: 18 November 2025
+Last updated: 5 December 2025
 
 Maintain this document to summarize user-facing changes per release. Follow keep-a-changelog style and semantic versioning.
 
@@ -8,6 +8,34 @@ Maintain this document to summarize user-facing changes per release. Follow keep
 - Initial documentation overhaul:
   - Added architecture, API integration, environment runbook, user guide, monitoring, testing strategy.
   - Expanded security roadmap and threat model.
+
+## 1.3.1 (2025-12-05)
+
+### 🔒 Security Fixes (CRITICAL)
+
+#### React2Shell Vulnerability Patch (CVE-2025-55182)
+- **Upgraded React and React DOM**: Updated from version 19.2.0 to 19.2.1
+- **Vulnerability**: Fixed maximum-severity remote code execution vulnerability (React2Shell)
+- **CVSS Score**: 10.0 (Critical)
+- **Impact**: Patches critical vulnerability affecting React Server Function endpoints that could allow unauthenticated remote code execution
+- **Affected Packages**: 
+  - `react`: 19.2.0 → 19.2.1
+  - `react-dom`: 19.2.0 → 19.2.1
+- **Reference**: [React2Shell Vulnerability Disclosure](https://www.infosecurity-magazine.com/news/reactjs-hit-by-react2shell/)
+
+#### Technical Changes
+- Updated React dependency from `^19.2.0` to `^19.2.1`
+- Updated React DOM dependency from `^19.2.0` to `^19.2.1`
+- No breaking changes or API modifications required
+
+#### Security Impact
+- **Before**: Vulnerable to CVE-2025-55182 (React2Shell) - Remote code execution risk
+- **After**: Protected against React2Shell vulnerability
+- **Risk Reduction**: Eliminated critical remote code execution attack vector
+
+#### Action Required
+- ✅ **Completed**: Dependencies upgraded to secure versions
+- All deployments should use React 19.2.1 or later
 
 ## 1.3.0 (2025-11-18)
 

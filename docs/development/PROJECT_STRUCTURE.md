@@ -23,7 +23,7 @@
 
 ### Technology Stack
 
-- **Frontend Framework**: React 19.2.0 with TypeScript 5.9.3
+- **Frontend Framework**: React 19.2.1 with TypeScript 5.9.3
 - **Build Tool**: Vite 7.1.7
 - **Styling**: Tailwind CSS 3.4.18
 - **UI Components**: shadcn/ui (Radix UI primitives)

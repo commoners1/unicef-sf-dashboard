@@ -396,7 +396,7 @@ erDiagram
 ### Frontend (Dashboard)
 
 #### Core Framework
-- **Framework**: React v19.2.0
+- **Framework**: React v19.2.1
 - **Language**: TypeScript v5.9.3
 - **Build Tool**: Vite v7.1.7
 
